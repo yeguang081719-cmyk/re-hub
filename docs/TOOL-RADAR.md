@@ -47,7 +47,7 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 | [decomp.wtf](https://github.com/i12bp8/decomp.wtf) | 软件/游戏 | 01 | MIT | REJECT | 已归档；社区反对 AI 反编译 |
 | [BLA](https://github.com/qybaihe/bla) | 防护/对抗 | — | MIT | REJECT（非逆向） | 反 AI 逆向防护盾，作为对抗面跟踪 |
 
-### 补扫新增（同日，按对象缺口）
+### 补扫新增（同日，按对象缺口 + 补漏）
 
 | 工具 | 对象 | 场景 | 许可 | 结论 | 一句话 |
 |---|---|---|---|---|---|
@@ -55,6 +55,9 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 | [dsh-apk-vm](https://github.com/yuxiaole-bili/dsh-apk-vm) | App/Android | 03/15 | Apache-2.0 | WATCH | 本地 root AOSP VM + UIAutomator + CDP；无真机跑 APK |
 | [loupe](https://github.com/bmcreations/loupe) | App/Android+iOS | 03/15 | Apache-2.0 | WATCH | 设备串流 + 可访问性树 + MCP；claim/human-hold 人机共驾 |
 | [dsh-asar-patch](https://github.com/loyalchiiina/dsh-asar-patch) | 软件/Electron | 06 | MIT | CATALOG | app.asar 等长就地补丁 + integrity 同步；只改不析 |
+| [ReaDroid](https://github.com/Mcsd7/ReaDroid) | App/Android | 02/10 | MIT | CATALOG | Termux 上的 APK 静态 + 重打包/签名工具箱 |
+| [IDA-Ghidra-bridge](https://github.com/oscarsantanaarias/IDA-Ghidra-bridge) | 软件/原生 | 01 | 无 | WATCH | IDA/Ghidra 的 TCP JSON 桥；跨反编译器互操作 |
+| [dump-tool](https://github.com/tcmmm/dump-tool) | App/Android (il2cpp) | 01/03 | MIT | CATALOG | il2cpp dump.cs 浏览/翻译/Hook 生成 + 30 个 MCP 工具 |
 
 完整评估、对比表与风险见 [tool-radar/2026-11-07.md](tool-radar/2026-11-07.md)；对象缺口补扫见 [tool-radar/2026-11-07-supplement.md](tool-radar/2026-11-07-supplement.md)。
 
@@ -110,4 +113,4 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 ## 日报索引
 
 - [2026-11-07](tool-radar/2026-11-07.md) — 首期，30 天基线，1761 新仓库 / 22 入账 / 8 深评。
-- [2026-11-07 补扫](tool-radar/2026-11-07-supplement.md) — 按对象缺口补扫，304 个未入账仓库 / 4 个候选（.NET、Android VM、设备串流、Electron patch）。
+- [2026-11-07 补扫](tool-radar/2026-11-07-supplement.md) — 按对象缺口补扫 + 补漏，304 个未入账仓库 / 7 个候选（.NET、Android VM、设备串流、Electron patch、Termux 工具箱、IDA↔Ghidra 桥、il2cpp 工作台）。

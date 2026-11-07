@@ -151,7 +151,19 @@ topic:hardware-hacking
 
 ---
 
-## 7. 证据与边界
+## 7. 补漏（首期分类器修复后）
+
+首期 `merge.mjs` 的 `classify()` 读的是 `full_name/description`，而合并后的记录字段是 `repo/desc`，导致首期分类实际上主要按 topics + star 排序，漏掉 3 个高星工具。修复后补录：
+
+| 工具 | ★ | 对象 | 场景 | 许可 | 结论 | 一句话 |
+|---|---:|---|---|---|---|---|
+| [ReaDroid](https://github.com/Mcsd7/ReaDroid) | 106 | App/Android | 02/10 | MIT | CATALOG | Termux 上的 APK 静态 + 重打包/签名工具箱；JADX/apktool 的封装 |
+| [IDA-Ghidra-bridge](https://github.com/oscarsantanaarias/IDA-Ghidra-bridge) | 73 | 软件/原生 | 01 | 无 | WATCH | IDA/Ghidra 的 TCP JSON 桥（39 命令）；跨反编译器互操作 |
+| [dump-tool](https://github.com/tcmmm/dump-tool) | 67 | App/Android (il2cpp) | 01/03 | MIT | CATALOG | il2cpp dump.cs 浏览/翻译/Hook 生成 + 30 个 MCP 工具 |
+
+**影响：** 首期“672 粗判”与 top-120 排序偏 topics；8 个深评结论不受影响（都在首期 top 50，已人工读 README）。后续 daily 用修复后的 `repo/desc` 分类。
+
+## 8. 证据与边界
 
 - 本期所有“能力”描述来自 README，未跑通；只有元数据（stars/license/release/created）是 `[观察]`。
 - `mcp-dotnet` 的 36 工具、`dsh-apk-vm` 的 60fps/root、`loupe` 的 claim 协议、`dsh-asar-patch` 的等长补丁，都需要在授权样本/隔离环境复现后才能升级为 `[观察]`。
