@@ -88,6 +88,7 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 - `backends.mjs` 增加 `asc` adapter：`listclass / listmethod / liststring / findrefs / getclass / getmanifest`。
 - `android-apk` 计划第 1 步：`asc` 侦察 → 命中类 → `jadx` 深反编译。
 - 许可 Apache-2.0；失败可回退 JADX，风险低。
+- 详细设计（capability/ops/错误/测试）：[integrations/ASC.md](integrations/ASC.md)。
 
 ### P1：`rust-deobf`（Rust 二进制补章）
 
