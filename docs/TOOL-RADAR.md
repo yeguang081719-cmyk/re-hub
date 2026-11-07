@@ -1,0 +1,94 @@
+# TOOL RADAR — 逆向工具雷达
+
+> 持续维护：每天扫描 GitHub 上**新出现**的逆向工具，识别其逆向对象与场景，和 re-hub 现有工具/后端做优劣对比，再决定是否接入。
+> 首次：2026-11-07 · 最近更新：2026-11-07 · 下次自动扫描：2026-11-08 09:30（Asia/Shanghai）
+
+## 为什么要有这个雷达
+
+re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编排、统一证据，而不是再造一个反编译器。  
+所以新增工具的判断标准不是“热不热”，而是：
+
+1. 它补的是哪条**对象 × 场景 × 模式**链路？
+2. 它和现有后端（REA / Ghidra / JADX / apktool / Frida / x64dbg / pe-sieve）是**替代**还是**互补**？
+3. 许可、设备、安装成本是否允许接入？失败能否回退？
+
+## 方法
+
+- 数据源：GitHub Search API，`created:>=<today-7d>`、`fork:false`、`sort=stars`、`per_page=100`，31 组查询（reverse engineering / decompiler / disassembler / malware / frida / ghidra / android / iOS / firmware / MCP / unpacker / il2cpp 等）。
+- 去重：所有扫过的仓库写入 `seen` 账本；star 翻倍且 ≥50 的旧噪声会“复活”复查。
+- 过滤：排除 awesome/教程/数据集、静态重编译游戏移植、游戏 cheat、纯防护工具。
+- 评估：读 README + 元数据（stars/license/created/pushed/release），按附录 D 的对象分类和第 01–15 章场景落位，再与现有工具逐项对比。
+- 证据：`observed`（API/元数据/真实执行）、`inferred`（README 自述）、`unknown`。**README 的基准不算证据。**
+
+## 当前结论（2026-11-07）
+
+| 工具 | 对象 | 场景 | 许可 | 结论 | 一句话 |
+|---|---|---|---|---|---|
+| [rust_ASC](https://github.com/MG1937/rust_ASC) | App/Android | 02 | Apache-2.0 | **PILOT** | 无状态 APK/DEX 快查；JADX 之前的毫秒级侦察层 |
+| [apkscope](https://github.com/suffixing/apkscope) | App/Android | 02/03/10 | Apache-2.0 | **PILOT** | 单 exe 一体化（反编译/Frida/dump/重签/MCP）；基准待复现 |
+| [rust-deobf](https://github.com/VAHPEM/rust-deobf) | 软件/原生 | 01/12 | Apache-2.0 core | **PILOT** | Rust 恶意样本去混淆；补 FLOSS 的空白 |
+| [rea-rust](https://github.com/nanashili/rea-rust) | 软件/App/JS | 多章 | MIT | **PILOT（对拍）** | REA 的 Rust 重写；去掉 Node 依赖的战略项 |
+| [vesper](https://github.com/Wtrwx/vesper) | App/iOS | 10/14 | MIT | WATCH | iOS 的 MCP 平台；需越狱设备 |
+| [unthemidator](https://github.com/x86rc/unthemidator) | 软件/Windows | 14 | 无 | WATCH | Themida 静态脱壳；许可缺失 |
+| [eleven](https://github.com/Zfinix/eleven) | 软件 + Android | 01/02/14 | Apache-2.0 | REFERENCE | Agent-first 桌面工作台；交互/审批可参考 |
+| [binny](https://github.com/openbin-ai/binny) | 软件 + Android | 01/02/12 | AGPL-3.0 | REFERENCE | 模型无关 harness；沙箱/预算/报告可参考 |
+| [Exuvia](https://github.com/Huai-Tian/Exuvia) | App/Android | 02/03 | AGPL-3.0 | WATCH | 脱壳 + dump 修复；root/AGPL |
+| [paranoia](https://github.com/Altumptic/paranoia) | 软件/原生 | 01/14 | Apache-2.0 | WATCH | 轻量原生引擎；反编译仅 x86/x64 |
+| [aidbg](https://github.com/A-new/aidbg) | 软件/Windows | 14 | 无 | WATCH | AI 调试器（JSONL/MCP）；许可缺失 |
+| [dexsql](https://github.com/LSPosed/dexsql-release) | App/Android | 02 | NOASSERTION | WATCH | APK/DEX 的 SQL 查询；许可待审 |
+| [dsh-rea](https://github.com/Fanqi89/dsh-rea) | AI 自动化 | — | MIT | REFERENCE | REA-only DSH 插件；安装/能力矩阵可参考 |
+| [metis-reverse](https://github.com/Wholiver/metis-reverse) | 软件/Web | 01/04 | MIT | REFERENCE | 另一套 RE MCP 网关；同层竞争 |
+| [retrokit](https://github.com/nautilusbits/retrokit) | 软件/DOS | 01 | Apache-2.0 | CATALOG | DOS LE/LX + Watcom 复古游戏 Ghidra 扩展 |
+| [gore](https://github.com/figurophobia/gore) | 软件/游戏资源 | 10 | MIT | CATALOG | Godot PCK 解包 + 自动找密钥 |
+| [Ghidra-Rare](https://github.com/aleph-void/Ghidra-Rare) | 软件/固件 | 01/08 | MIT | CATALOG | Ghidra 稀有 ISA 的 SLEIGH 支持 |
+| [Malvex](https://github.com/JoasASantos/Malvex) | 多对象 | 多章 | MIT（README） | CATALOG | 126 工具的恶意分析编排；与 re-hub 同层 |
+| [hw-harness](https://github.com/cschalle/hw-harness) | 硬件/驱动 | 09/11 | MIT | CATALOG | VM + usbmon 外部观测写 Linux 驱动 |
+| [html-disasm](https://github.com/MarketKernel/html-disasm) | 多对象 | 01/10 | MIT | CATALOG | 离线多格式反汇编 |
+| [decomp.wtf](https://github.com/i12bp8/decomp.wtf) | 软件/游戏 | 01 | MIT | REJECT | 已归档；社区反对 AI 反编译 |
+| [BLA](https://github.com/qybaihe/bla) | 防护/对抗 | — | MIT | REJECT（非逆向） | 反 AI 逆向防护盾，作为对抗面跟踪 |
+
+完整评估、对比表与风险见 [tool-radar/2026-11-07.md](tool-radar/2026-11-07.md)。
+
+## 接入建议（按优先级）
+
+### P0：`asc` 快查能力（rust_ASC）
+
+- `capabilities.mjs` 注册 `android-fast-index`，候选实现 `asc`，回退 `jadx`。
+- `backends.mjs` 增加 `asc` adapter：`listclass / listmethod / liststring / findrefs / getclass / getmanifest`。
+- `android-apk` 计划第 1 步：`asc` 侦察 → 命中类 → `jadx` 深反编译。
+- 许可 Apache-2.0；失败可回退 JADX，风险低。
+
+### P1：`rust-deobf`（Rust 二进制补章）
+
+- 第 01 章增加“Rust 二进制”小节：`strings`/FLOSS 失效时，用 `rust-deobf` 做静态 + Unicorn 模拟恢复。
+- 先标 experimental；接 MCP 或 CLI，输出只作为 `inferred` 线索，需人工/Ghidra 复核。
+
+### P2：`apkscope` / `rea-rust`（验证后再说）
+
+- `apkscope`：先复现“打开速度 / 单类 Java / MCP”三项，再决定是否作为 dump/重签可选后端。
+- `rea-rust`：先用 3–5 个样本对拍 REA 6.4.0 的 `inspect/decompile` 输出；有正式 release 再考虑替换 Node 运行时。
+
+## 复评触发
+
+| 项目 | 触发条件 |
+|---|---|
+| rea-rust | 正式 release / 对拍通过 / 上游 REA 行为变更 |
+| apkscope | 第三方复现基准 / ≥0.8 / 修掉 viewer 平台限制 |
+| rust-deobf | 出 release / 真实样本复现 / premium 许可明确 |
+| vesper | 有越狱设备 / 出 release |
+| unthemidator | 补 LICENSE / 支持 VMProtect |
+| paranoia | 支持 ARM64 反编译 / CLI 稳定 |
+| aidbg | 补 LICENSE |
+| Exuvia | 有授权设备 / 许可放宽 |
+| dexsql | 许可证明确 |
+
+## 证据纪律
+
+- 只写有证据的结论；README 自述标 `inferred`，未跑过的不写“已验证”。
+- 性能数字必须带样本、版本、环境；没有复现就注明“作者自述”。
+- 脱壳/dump/Frida/iOS 解密只在自有或已授权样本、隔离环境做。
+- 不把“star 多”当质量；本期有 549★ 两天归档、2641★ 是防护工具而非逆向工具。
+
+## 日报索引
+
+- [2026-11-07](tool-radar/2026-11-07.md) — 首期，30 天基线，1761 新仓库 / 22 入账 / 8 深评。
