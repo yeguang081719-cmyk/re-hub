@@ -7,6 +7,8 @@
   "jadxHome": "D:/work/re-hub/tools/jadx",
   "apktoolJar": "D:/work/re-hub/tools/apktool.jar",
   "reaJadxMcpJar": "D:/work/re-hub/tools/jadx-headless-mcp-0.7.1-clean.jar",
+  "x64dbgExe": "",
+  "peSieveExe": "",
   "adbExe": "",
   "fridaExe": "",
   "vendorDir": "D:/work/re-hub/vendor",

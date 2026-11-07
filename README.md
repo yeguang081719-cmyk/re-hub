@@ -13,8 +13,8 @@ Agent 先识别意图与目标形态，再路由到对应逆向链路（原生 /
 re-hub/
 ├─ src/
 │  ├─ server.mjs        # MCP stdio 服务：7 个工具 + 2 个官方 prompt
-│  ├─ scenarios.mjs     # 13 个场景目录 + 意图路由（关键词/扩展名加权）+ 链路规划
-│  ├─ backends.mjs      # 真实执行适配器：rea / ghidra / jadx / apktool / adb / frida
+│  ├─ scenarios.mjs     # 15 个场景目录 + 意图路由（关键词/扩展名加权）+ 链路规划
+│  ├─ backends.mjs      # 真实执行适配器：rea / ghidra / jadx / apktool / adb / frida / uia / x64dbg / pe-sieve
 │  ├─ detect.mjs        # 环境侦察（可用性/版本/安装提示，30s 缓存）
 │  ├─ evidence.mjs      # 证据账本（JSONL）与 Markdown 报告
 │  ├─ cli.mjs           # 命令行版（调试/脚本用）
@@ -79,7 +79,7 @@ node scripts/validate-patch.mjs E:\AI\.dsh\cordis.patch.yml
 | 工具 | 作用 |
 |---|---|
 | `detect` | 侦察本机后端可用性、版本、缺失项安装提示、vendor 数量 |
-| `scenarios` | 列出 13 个场景及链路（带 chapter 指针） |
+| `scenarios` | 列出 15 个场景及链路（带 chapter 指针） |
 | `route` | **意图识别**：task(+target) → 场景/置信度/理由/**该读哪一章(chapter)**/缺失依赖/澄清问题 |
 | `book` | **这本书**：不带参数返回目录；带 chapter（`04`/`04-web-js`/`web-js`）返回该章正文 |
 | `plan` | 生成可执行链路：每步 backend/op/参数、未解析参数、证据要求、chapter |
@@ -94,7 +94,7 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 `skills/reverse-engineering-hub/` 是按「书」组织的 skill：
 
 - **封面** `SKILL.md`：书名/简介/**目录**/**三个速查索引**（按目标形态、按用户说法、按产出）/标准动作。
-- **正文** `chapters/`：00 使用说明 + 01–13 场景章 + A 证据与交付 + B 后端与依赖 + C 坑与故障排查。
+- **正文** `chapters/`：00 使用说明 + 01–15 场景章 + A 证据与交付 + B 后端与依赖 + C 坑与故障排查。
 - **按需加载**：先 `rehub_route` 拿到 `chapter`，再 `rehub_book { chapter }` 只读那一章，不必整本读。
 - **三索引**让 agent 或人 30 秒内定位："这个报错看哪章、这个目标看哪章、要这种产出看哪章"。
 
@@ -107,6 +107,7 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 | 04 | Web/JS（签名/加密） | 11 | 进程行为 |
 | 05 | Web 运行时观察 | 12 | 漏洞研究/补丁 |
 | 06 | Electron/桌面 JS | 13 | 分诊（信息不足） |
+| 14 | 动态分析/运行时追踪 | 15 | UI 逆向/界面结构 |
 | A | 证据与交付 | B | 后端与依赖 |
 | C | 坑与故障排查 | — | — |
 
@@ -121,6 +122,8 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 | `jadx-headless-mcp` | 1013503897/jadx-headless-mcp（固定 v0.7.1） | 41MB | REA 的 Android 桥（自动重打包去重） |
 | `rea` | morluto/rea | 仓库 + npm 依赖 | 统一执行层 |
 | `ghidra` | NationalSecurityAgency/ghidra | ~400MB | 原生深分析（需 JDK21） |
+| `x64dbg` | x64dbg/x64dbg | ~50MB | 动态调试（断点/单步/内存） |
+| `pe-sieve` | hasherezade/pe-sieve | ~1MB | 内存 dump / 注入检测 |
 
 两种用法：
 - **Agent 侧**：`rehub_install { only:["jadx","apktool"], dryRun:false }`（默认 dry-run，只报告计划）
@@ -144,6 +147,8 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 | artifact-inventory | rea inspect/extract artifact | REA ✅ |
 | process-behavior | rea capture-process | Windows 受限 |
 | vuln-research | rea layout + ghidra functions | ✅ |
+| dynamic-analysis | x64dbg + frida + pe-sieve | x64dbg/pe-sieve 可 bootstrap；frida 需 pip；VMProtect 见第 14 章 |
+| ui-reverse | UIA（控件树/截图）+ CEF CDP | UIA 内置；CEF 需调试端口 |
 | triage | 提问澄清 | — |
 
 实测（2026-11-07，样本 APK，计算器 6.7MB）：

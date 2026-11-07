@@ -86,7 +86,7 @@ const tools = [
   },
   {
     name: 'rehub_scenarios',
-    description: '列出 13 类逆向场景（原生/Android 静态/Android 动态/Web JS/Web 运行时/Electron/.NET/固件/抓包/归档/进程行为/漏洞研究/分诊）及各自链路。',
+    description: '列出 15 类逆向场景（原生/Android 静态/Android 动态/Web JS/Web 运行时/Electron/.NET/固件/抓包/归档/进程行为/漏洞研究/分诊/动态分析/UI 逆向）及各自链路。',
     inputSchema: { type: 'object', properties: {} },
     handler: async () => ({ count: SCENARIOS.length, scenarios: scenarioCatalog() }),
   },
@@ -127,7 +127,7 @@ const tools = [
   {
     name: 'rehub_book',
     description:
-      '这本书的目录与正文：不带 chapter 返回目录（00 使用说明 + 13 个场景章 + 3 个附录）；带 chapter 返回该章完整正文。chapter 可用 "04-web-js"/"04"/scenario id（如 "web-js"）。rehub_route 返回的 chapter 直接传进来即可。',
+      '这本书的目录与正文：不带 chapter 返回目录（00 使用说明 + 15 个场景章 + 3 个附录）；带 chapter 返回该章完整正文。chapter 可用 "04-web-js"/"04"/scenario id（如 "web-js"）。rehub_route 返回的 chapter 直接传进来即可。',
     inputSchema: {
       type: 'object',
       properties: {

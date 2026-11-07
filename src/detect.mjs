@@ -1,6 +1,7 @@
 // Environment detection: which reverse-engineering engines/backends are actually usable here.
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { run, which } from './lib/exec.mjs';
 
@@ -49,11 +50,39 @@ function exists(p) {
   try { return !!p && fs.existsSync(p); } catch { return false; }
 }
 
+/** Windows 完整性级别：pe-sieve/x64dbg 打开其它进程需要 High（管理员）。 */
+function isElevatedSession() {
+  if (process.platform !== 'win32') return true;
+  try {
+    execFileSync('net', ['session'], { stdio: 'ignore', timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function findIn(dir, names) {
   if (!exists(dir)) return null;
   for (const n of names) {
     const p = path.join(dir, n);
     if (exists(p)) return p;
+  }
+  return null;
+}
+
+/** Depth-first search for a file name under a directory. */
+function findFileRecursive(dir, name) {
+  if (!exists(dir)) return null;
+  const stack = [dir];
+  while (stack.length) {
+    const cur = stack.pop();
+    let entries = [];
+    try { entries = fs.readdirSync(cur, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      const p = path.join(cur, e.name);
+      if (e.isFile() && e.name.toLowerCase() === name.toLowerCase()) return p;
+      if (e.isDirectory()) stack.push(p);
+    }
   }
   return null;
 }
@@ -70,6 +99,10 @@ export async function detectEnvironment(cfg = loadConfig(), { refresh = false } 
   if (!refresh && cached && now - cachedAt < TTL_MS) return cached;
 
   const backends = {};
+  const elevated = isElevatedSession();
+  const elevationNote = elevated
+    ? null
+    : '当前会话未提权（Medium 完整性）：pe-sieve 打开其它进程会 Access Denied（需 SeDebugPrivilege）；x64dbg 只能调试自己启动的进程。以管理员身份启动 DSH/终端即可。';
 
   // --- REA (CLI, 主执行层) ---
   {
@@ -174,6 +207,52 @@ export async function detectEnvironment(cfg = loadConfig(), { refresh = false } 
     };
   }
 
+  // --- x64dbg（动态调试） ---
+  {
+    const candidates = [cfg.x64dbgExe, 'C:/Program Files/x64dbg/release/x64dbg.exe', 'D:/Tools/x64dbg/release/x64dbg.exe'];
+    let exe = candidates.find((p) => exists(p)) || null;
+    if (!exe && exists(path.join(cfg.toolsDir || '', 'x64dbg'))) {
+      const found = findFileRecursive(path.join(cfg.toolsDir, 'x64dbg'), 'x64dbg.exe');
+      if (found) exe = found;
+    }
+    backends.x64dbg = {
+      available: !!exe,
+      version: exe ? 'present' : null,
+      path: exe,
+      role: 'Windows 用户态调试器（断点/单步/内存/调用栈）；VMProtect 场景配合 ScyllaHide/HyperHide',
+      install: 'node scripts/bootstrap.mjs --only x64dbg --yes（GitHub release zip），或手动安装 x64dbg 后写 config.x64dbgExe。',
+      note: exe && elevationNote ? elevationNote : null,
+    };
+  }
+
+  // --- pe-sieve（内存 dump / 注入检测） ---
+  {
+    let exe = cfg.peSieveExe && exists(cfg.peSieveExe) ? cfg.peSieveExe : null;
+    if (!exe && exists(path.join(cfg.toolsDir || '', 'pe-sieve'))) {
+      exe = findFileRecursive(path.join(cfg.toolsDir, 'pe-sieve'), 'pe-sieve.exe');
+    }
+    backends['pe-sieve'] = {
+      available: !!exe,
+      version: exe ? 'present' : null,
+      path: exe,
+      role: '进程内存扫描/dump（脱壳后镜像、检测 hook/注入）',
+      install: 'node scripts/bootstrap.mjs --only pe-sieve --yes（GitHub release exe）',
+      note: exe && elevationNote ? elevationNote : null,
+    };
+  }
+
+  // --- UIA（UI 逆向：控件树/截图） ---
+  {
+    const script = path.join(PROJECT_ROOT, 'scripts', 'uia', 'uia.ps1');
+    backends.uia = {
+      available: process.platform === 'win32' && exists(script),
+      version: exists(script) ? 'builtin' : null,
+      path: script,
+      role: 'UI Automation 控件树导出/窗口截图（UI 逆向与原型参考）',
+      install: exists(script) ? null : 'scripts/uia/uia.ps1 缺失（重新拉取仓库即可）',
+    };
+  }
+
   // --- .NET ---
   backends.dotnet = {
     available: !!(await which('dotnet')),
@@ -241,6 +320,12 @@ export async function detectEnvironment(cfg = loadConfig(), { refresh = false } 
   const result = {
     generatedAt: new Date().toISOString(),
     host: { platform: process.platform, arch: process.arch, node: process.version },
+    elevation: {
+      elevated,
+      note: elevated
+        ? 'High（管理员）：pe-sieve/x64dbg 可打开其它进程'
+        : 'Medium（未提权）：pe-sieve 会 Access Denied；x64dbg 只能调自己启动的进程',
+    },
     backends,
     mcp,
     vendor,

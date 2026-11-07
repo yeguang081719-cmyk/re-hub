@@ -1,8 +1,9 @@
 // Backend adapters. Each op maps to a real command; results are normalized
-// so the router/skill can treat native/Android/Web/dynamic chains uniformly.
+// so the router/skill can treat native/Android/Web/dynamic/UI chains uniformly.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { run, clip } from './lib/exec.mjs';
 import { loadConfig, PROJECT_ROOT } from './detect.mjs';
 
@@ -311,6 +312,137 @@ export async function execFrida(args = {}, cfg = loadConfig()) {
 }
 
 /* ------------------------------------------------------------------ */
+/* UI Automation (UIA) — window control tree / screenshot              */
+/* ------------------------------------------------------------------ */
+
+export async function execUia(args = {}, cfg = loadConfig()) {
+  const script = path.join(PROJECT_ROOT, 'scripts', 'uia', 'uia.ps1');
+  if (!fs.existsSync(script)) throw new Error(`UIA 脚本缺失: ${script}`);
+  const action = args.op || 'tree';
+  if (!['tree', 'screenshot', 'find'].includes(action)) throw new Error(`uia 不支持 op: ${action}（tree/screenshot/find）`);
+  const argv = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-Action', action];
+  if (args.process) argv.push('-ProcessName', String(args.process));
+  if (args.pid) argv.push('-ProcessId', String(args.pid));
+  if (args.title) argv.push('-Title', String(args.title));
+  if (args.query) argv.push('-Query', String(args.query));
+  if (args.out) {
+    const out = path.isAbsolute(args.out) ? args.out : path.join(cfg.stateDir, 'uia', args.out);
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    argv.push('-Out', out);
+  }
+  if (args.maxDepth) argv.push('-MaxDepth', String(args.maxDepth));
+  if (args.maxNodes) argv.push('-MaxNodes', String(args.maxNodes));
+  const r = await run('powershell', argv, { timeoutMs: args.timeoutMs || 60000, maxBytes: cfg.maxOutputBytes });
+  // script prints one JSON object to stdout
+  let data;
+  try { data = JSON.parse(r.stdout); } catch { data = undefined; }
+  return normalize('uia', action, r, { data });
+}
+
+/* ------------------------------------------------------------------ */
+/* x64dbg / pe-sieve (dynamic analysis)                                */
+/* ------------------------------------------------------------------ */
+
+function findByName(root, name) {
+  if (!root || !fs.existsSync(root)) return null;
+  const stack = [root];
+  while (stack.length) {
+    const cur = stack.pop();
+    let entries = [];
+    try { entries = fs.readdirSync(cur, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      const p = path.join(cur, e.name);
+      if (e.isFile() && e.name.toLowerCase() === name.toLowerCase()) return p;
+      if (e.isDirectory()) stack.push(p);
+    }
+  }
+  return null;
+}
+
+export async function execX64dbg(args = {}, cfg = loadConfig()) {
+  const exe = (cfg.x64dbgExe && fs.existsSync(cfg.x64dbgExe))
+    ? cfg.x64dbgExe
+    : findByName(path.join(cfg.toolsDir || path.join(PROJECT_ROOT, 'tools'), 'x64dbg'), 'x64dbg.exe');
+  if (!exe) {
+    const err = new Error('x64dbg 未安装：node scripts/bootstrap.mjs --only x64dbg --yes，或把 x64dbg.exe 路径写入 config.json 的 x64dbgExe');
+    err.code = 'backend-unavailable';
+    throw err;
+  }
+  const op = args.op || 'info';
+  if (op === 'info') {
+    // 不启动 GUI：只报告路径/大小，避免 -v 在某些版本弹窗阻塞
+    const st = fs.statSync(exe);
+    return { backend: 'x64dbg', op, ok: true, path: exe, bytes: st.size, note: 'x64dbg 已就绪；launch/attach 会打开 GUI。' };
+  }
+  if (op === 'launch') {
+    const target = requireTarget(args);
+    const child = spawn(exe, [target], { detached: true, stdio: 'ignore', windowsHide: false });
+    child.unref();
+    // 等 2 秒确认进程存活
+    await new Promise((r) => setTimeout(r, 2000));
+    return {
+      backend: 'x64dbg', op, ok: true, pid: child.pid, target,
+      note: 'x64dbg 已启动；标准控制请接 x64dbg-mcp-server（MCP），或在本机手动操作后回来记录证据。',
+    };
+  }
+  if (op === 'attach') {
+    if (!args.pid) throw new Error('attach 需要 pid');
+    const child = spawn(exe, ['-p', String(args.pid)], { detached: true, stdio: 'ignore', windowsHide: false });
+    child.unref();
+    return { backend: 'x64dbg', op, ok: true, pid: args.pid, note: 'x64dbg 已尝试附加；控制请用 x64dbg-mcp-server。' };
+  }
+  throw new Error(`x64dbg 不支持 op: ${op}（info/launch/attach）`);
+}
+
+let _elevated = null;
+/** Windows: is this session elevated (High integrity)? pe-sieve/x64dbg need it for other processes. */
+async function isElevated() {
+  if (process.platform !== 'win32') return true;
+  if (_elevated !== null) return _elevated;
+  try {
+    const r = await run('net', ['session'], { timeoutMs: 8000 });
+    _elevated = r.code === 0;
+  } catch {
+    _elevated = false;
+  }
+  return _elevated;
+}
+
+export async function execPeSieve(args = {}, cfg = loadConfig()) {
+  const exe = (cfg.peSieveExe && fs.existsSync(cfg.peSieveExe))
+    ? cfg.peSieveExe
+    : findByName(path.join(cfg.toolsDir || path.join(PROJECT_ROOT, 'tools'), 'pe-sieve'), 'pe-sieve.exe');
+  if (!exe) {
+    const err = new Error('pe-sieve 未安装：node scripts/bootstrap.mjs --only pe-sieve --yes');
+    err.code = 'backend-unavailable';
+    throw err;
+  }
+  const op = args.op || 'scan';
+  if (!['scan', 'dump'].includes(op)) throw new Error(`pe-sieve 不支持 op: ${op}（scan/dump）`);
+  if (!args.pid) throw new Error(`${op} 需要 pid`);
+
+  // pe-sieve 打开目标进程需要 SeDebugPrivilege：Medium 完整性会话会 Access Denied
+  if (!(await isElevated())) {
+    const err = new Error('pe-sieve 需要管理员权限（High 完整性级别）：当前会话是 Medium，打开进程会 Access Denied。请以管理员身份启动 DSH/终端后重试。');
+    err.code = 'needs-elevation';
+    throw err;
+  }
+
+  const out = args.out || path.join(cfg.stateDir, 'pesieve', `${op}-${args.pid}-${Date.now()}`);
+  fs.mkdirSync(out, { recursive: true });
+  const argv = ['/pid', String(args.pid), '/dir', out, ...(op === 'dump' ? ['/dmode', '3', '/shellc'] : []), '/json'];
+  const r = await run(exe, argv, { timeoutMs: args.timeoutMs || 300000 });
+  const data = parseJsonMaybe(r.stdout);
+  const res = normalize('pe-sieve', op, r, { outDir: out, data });
+  if (/Could not set debug privilege|Access Denied|Could not open the process/i.test(`${r.stdout}\n${r.stderr}`)) {
+    res.ok = false;
+    res.code = 'needs-elevation';
+    res.error = 'pe-sieve 打开目标失败（Access Denied）：需要管理员权限。';
+  }
+  return res;
+}
+
+/* ------------------------------------------------------------------ */
 /* Dispatcher                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -322,7 +454,10 @@ export async function execBackend(backend, args = {}, cfg = loadConfig()) {
     case 'ghidra': return execGhidra(args, cfg);
     case 'adb': return execAdb(args, cfg);
     case 'frida': return execFrida(args, cfg);
+    case 'uia': return execUia(args, cfg);
+    case 'x64dbg': return execX64dbg(args, cfg);
+    case 'pe-sieve': return execPeSieve(args, cfg);
     default:
-      throw new Error(`未知 backend: ${backend}。可用：rea/jadx/apktool/ghidra/adb/frida，以及 mcp:<name>（走 rehub_mcp）`);
+      throw new Error(`未知 backend: ${backend}。可用：rea/jadx/apktool/ghidra/adb/frida/uia/x64dbg/pe-sieve，以及 mcp:<name>（走 rehub_mcp）`);
   }
 }

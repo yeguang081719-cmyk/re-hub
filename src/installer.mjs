@@ -75,6 +75,40 @@ export const TOOLS = {
     requires: ['java'],
     note: '原生二进制深分析（约 400MB，含 JDK 依赖）',
   },
+  x64dbg: {
+    repo: 'x64dbg/x64dbg',
+    asset: /snapshot_.*\.zip$/i,
+    kind: 'zip',
+    dest: 'x64dbg',
+    config: { x64dbgExe: 'x64dbg.exe' },
+    configFromFile: 'x64dbg.exe',
+    check: (root) => {
+      const base = path.join(root, 'tools/x64dbg');
+      if (!fs.existsSync(base)) return null;
+      try {
+        const stack = [base];
+        while (stack.length) {
+          const cur = stack.pop();
+          for (const e of fs.readdirSync(cur, { withFileTypes: true })) {
+            const p = path.join(cur, e.name);
+            if (e.isFile() && e.name.toLowerCase() === 'x64dbg.exe') return p;
+            if (e.isDirectory()) stack.push(p);
+          }
+        }
+      } catch { /* ignore */ }
+      return null;
+    },
+    note: 'Windows 用户态调试器（动态分析主力；AI 控制可再接 x64dbg-mcp-server）',
+  },
+  'pe-sieve': {
+    repo: 'hasherezade/pe-sieve',
+    asset: /^pe-sieve64\.exe$/i,
+    kind: 'exe',
+    dest: 'pe-sieve.exe',
+    config: { peSieveExe: 'pe-sieve.exe' },
+    check: (root) => firstExisting([path.join(root, 'tools/pe-sieve/pe-sieve.exe'), path.join(root, 'tools/pe-sieve.exe')]),
+    note: '进程内存扫描/dump（脱壳、内存取证）',
+  },
 };
 
 const ALIASES = {
@@ -88,6 +122,23 @@ const ALIASES = {
 
 function firstExisting(list) {
   for (const p of list) if (p && fs.existsSync(p)) return p;
+  return null;
+}
+
+/** Depth-first search for a file name under a directory. */
+function findFileRecursive(dir, name) {
+  if (!fs.existsSync(dir)) return null;
+  const stack = [dir];
+  while (stack.length) {
+    const cur = stack.pop();
+    let entries = [];
+    try { entries = fs.readdirSync(cur, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      const p = path.join(cur, e.name);
+      if (e.isFile() && e.name.toLowerCase() === name.toLowerCase()) return p;
+      if (e.isDirectory()) stack.push(p);
+    }
+  }
   return null;
 }
 
@@ -108,6 +159,10 @@ function configInstalled(id, cfg) {
       if (!cfg.ghidraDir) return null;
       return firstExisting([path.join(cfg.ghidraDir, 'support', 'analyzeHeadless.bat'), path.join(cfg.ghidraDir, 'support', 'analyzeHeadless')]);
     }
+    case 'x64dbg':
+      return cfg.x64dbgExe && fs.existsSync(cfg.x64dbgExe) ? cfg.x64dbgExe : null;
+    case 'pe-sieve':
+      return cfg.peSieveExe && fs.existsSync(cfg.peSieveExe) ? cfg.peSieveExe : null;
     default:
       return null;
   }
@@ -290,6 +345,15 @@ async function installOne(id, ctx) {
     result.skipped = 'already-installed';
     result.path = existing;
     logLine(log, 'SKIP', `${id} 已存在：${existing}`);
+    // 已装好但 config 没指路时补写，避免“文件在、detect 说没有”
+    const key = Object.keys(spec.config || {})[0];
+    if (key && (!cfg[key] || !fs.existsSync(cfg[key]))) {
+      cfg[key] = existing;
+      try {
+        fs.writeFileSync(ctx.configPath || path.join(root, 'config.json'), JSON.stringify(cfg, null, 2) + '\n');
+        logLine(log, 'CFG', `${id}: config.${key} = ${existing}`);
+      } catch { /* ignore */ }
+    }
     return result;
   }
 
@@ -334,7 +398,20 @@ async function installOne(id, ctx) {
       }
       fs.rmdirSync(nested);
     }
-    entries[Object.keys(spec.config)[0]] = targetDir;
+    const key = Object.keys(spec.config)[0];
+    if (spec.configFromFile) {
+      const found = findFileRecursive(targetDir, spec.configFromFile);
+      if (!found) throw new Error(`解压后未找到 ${spec.configFromFile}`);
+      entries[key] = found;
+    } else {
+      entries[key] = targetDir;
+    }
+  } else if (spec.kind === 'exe') {
+    fs.mkdirSync(toolsDir, { recursive: true });
+    const dest = path.join(toolsDir, spec.dest);
+    fs.rmSync(dest, { force: true });
+    fs.copyFileSync(raw, dest);
+    entries[Object.keys(spec.config)[0]] = dest;
   } else if (spec.kind === 'jar') {
     fs.mkdirSync(toolsDir, { recursive: true });
     fs.copyFileSync(raw, targetDir);

@@ -14,7 +14,10 @@
 | dotnet | ✅ | 辅助 |
 | jadx-headless-mcp 0.7.1 | ✅（REA 桥） | `rea android-*` |
 | adb | ❌ | 动态链前置 |
-| frida | ❌ | 动态插桩 |
+| frida | ❌ | 动态插桩（pip install frida-tools） |
+| x64dbg | ✅（bootstrap 安装） | 动态调试（断点/单步/内存）；Medium 会话只能调自己启动的进程 |
+| pe-sieve | ✅（bootstrap 安装，需管理员） | 内存 dump / 注入检测；未提权会 Access Denied（`needs-elevation`） |
+| uia | ✅ 内置 | UI 控件树/截图（scripts/uia/uia.ps1） |
 | ida / binja | ❌ | 商业授权 |
 | js-reverse-mcp | ⚠️ 已克隆未构建 | Web 断点/Hook 增强 |
 
@@ -36,8 +39,10 @@ Agent 侧等价：`rehub_install { only:["jadx"], dryRun:false }`（默认 dry-r
 | `jadx-headless-mcp` | 1013503897/jadx-headless-mcp v0.7.1 | 41MB |
 | `rea` | morluto/rea | clone + npm |
 | `ghidra` | NationalSecurityAgency/ghidra | ~400MB（需 JDK21） |
+| `x64dbg` | x64dbg/x64dbg | ~50MB（快照包） |
+| `pe-sieve` | hasherezade/pe-sieve | ~1MB |
 
-不走 GitHub release 的：adb（platform-tools）、frida（pip）、IDA/Binary Ninja（商业授权）——见 B.5。
+不走 GitHub release 的：adb（platform-tools）、frida（pip）、IDA/Binary Ninja（商业授权）、UIA（系统内置）——见 B.5。
 
 ## B.3 REA 专属环境变量
 

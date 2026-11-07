@@ -40,12 +40,12 @@ check('detect 统计 vendor 仓库', (detect?.vendor?.count ?? 0) >= 0);
 
 // 2) scenarios
 const scenarios = textOf(await client.callTool('rehub_scenarios', {}));
-check('scenarios 数量 13', scenarios?.count === 13, `got ${scenarios?.count}`);
+check('scenarios 数量 15', scenarios?.count === 15, `got ${scenarios?.count}`);
 check('scenarios 带 chapter 指针', typeof scenarios?.scenarios?.[0]?.chapter === 'string');
 
 // 2b) book
 const toc = textOf(await client.callTool('rehub_book', {}));
-check('book 目录 17 项（00 + 13 章 + 3 附录）', toc?.chapters?.length === 17, `got ${toc?.chapters?.length}`);
+check('book 目录 19 项（00 + 15 章 + 3 附录）', toc?.chapters?.length === 19, `got ${toc?.chapters?.length}`);
 const ch4 = textOf(await client.callTool('rehub_book', { chapter: '04' }));
 check('book 按序号取章（04）', ch4?.ok === true && /Web/.test(ch4.content));
 const chByScenario = textOf(await client.callTool('rehub_book', { chapter: 'web-js' }));
@@ -62,6 +62,8 @@ const cases = [
   { task: '抓包文件 har 分析请求参数', target: 'C:/tmp/session.har', want: 'protocol-capture' },
   { task: '固件提取文件系统', target: 'C:/tmp/fw.bin', want: 'firmware' },
   { task: 'unity 游戏 dll 的 c# 逻辑', target: 'C:/tmp/Assembly-CSharp.dll', want: 'dotnet-managed' },
+  { task: '用 x64dbg 动态调试这个 exe，下断点看调用', target: 'C:/tmp/demo.exe', want: 'dynamic-analysis' },
+  { task: '把这个软件界面控件树导出来，复刻 UI', target: 'C:/tmp/app.exe', want: 'ui-reverse' },
 ];
 for (const c of cases) {
   const r = textOf(await client.callTool('rehub_route', { task: c.task, target: c.target }));

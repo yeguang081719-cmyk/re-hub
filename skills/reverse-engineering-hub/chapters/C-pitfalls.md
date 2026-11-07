@@ -16,6 +16,10 @@
 | MCP 工具是旧行为 | server.mjs 改了但未重挂载 | 移除再插入 patch 条目，或重启 DSH |
 | DSH 启动失败 / YAML 解析错 | `cordis.patch.yml` 编码/行尾损坏 | `node scripts/validate-patch.mjs`；用 ASCII 注释重建 |
 | 中文注释乱码 | PowerShell 默认编码 | 一律用 Node/工具写文件，不要 `Set-Content` 写中文 |
+| 动态分析附加即崩 | 反调试/VMProtect | 先开 ScyllaHide/HyperHide；别反复重试 |
+| VMProtect 脱壳失败 | 版本敏感/虚拟化 | VMPStatic/Titan 先小样本验证，别当通用解 |
+| UIA 控件树很浅 | Qt 自绘控件无 UIA 语义 | 截图 + 重画；或对 CEF 页面走 CDP |
+| CEF 拿不到 DOM | 未开远程调试端口 | 查程序启动参数/配置里的 `--remote-debugging-port` |
 
 ## C.2 网关自身的坑
 
