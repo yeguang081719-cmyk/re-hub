@@ -99,6 +99,7 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 
 - 直接作为 `mcpBackends` 注册，先跑 `load_assembly → decompile → scan_suspicious_apis → rename → save → 再反编译`。
 - 改 IL 只用于自有/授权样本，保留原始副本；稳定后写进第 07 章“MCP 可选后端”。
+- 详细设计（只读/patch 分阶段、工具映射、测试）：[integrations/MCP-DOTNET.md](integrations/MCP-DOTNET.md)。
 
 ### P2：`apkscope` / `rea-rust`（验证后再说）
 
