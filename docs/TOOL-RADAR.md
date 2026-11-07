@@ -137,3 +137,5 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 - [2026-11-07 Web/JS 补扫](tool-radar/2026-11-07-webgap.md) — 10 组定向查询，190 个新仓库 / 5 个候选；无成熟新 Web 工具。
 - [2026-11-07 固件/抓包补扫](tool-radar/2026-11-07-fwgap.md) — 12 组定向查询，524 个新仓库 / 5 个候选；无成熟新后端。
 - [2026-11-07 首期周报](tool-radar/WEEKLY-2026-11-07.md) — 43 个工具的汇总：5 PILOT、13 WATCH、7 REFERENCE、16 CATALOG、2 REJECT；含覆盖矩阵与下周计划。
+
+**数据：** [ledger.json](tool-radar/ledger.json)（43 个工具的对象/场景/结论/证据） · [COVERAGE.md](tool-radar/COVERAGE.md)（对象×章节矩阵）。
