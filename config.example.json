@@ -1,0 +1,19 @@
+{
+  "nodeExe": "node",
+  "reaScript": "D:/path/to/rea/scripts/rea.mjs",
+  "ghidraDir": "D:/path/to/ghidra_12.x_PUBLIC",
+  "javaHome": "D:/path/to/jdk-21",
+  "chrome": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "jadxHome": "D:/work/re-hub/tools/jadx",
+  "apktoolJar": "D:/work/re-hub/tools/apktool.jar",
+  "reaJadxMcpJar": "D:/work/re-hub/tools/jadx-headless-mcp-0.7.1-clean.jar",
+  "adbExe": "",
+  "fridaExe": "",
+  "vendorDir": "D:/work/re-hub/vendor",
+  "stateDir": "D:/work/re-hub/state",
+  "logsDir": "D:/work/re-hub/logs",
+  "toolsDir": "D:/work/re-hub/tools",
+  "defaultTimeoutMs": 120000,
+  "maxOutputBytes": 4000000,
+  "mcpBackends": {}
+}

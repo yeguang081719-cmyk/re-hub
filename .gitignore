@@ -1,0 +1,16 @@
+# ---- machine-specific runtime ----
+config.json
+state/
+logs/
+
+# ---- vendored third-party repos (reproduce: scripts/vendor-clone.ps1) ----
+vendor/
+
+# ---- downloaded tool binaries (reproduce: docs/BACKENDS.md) ----
+tools/
+
+# ---- misc ----
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
