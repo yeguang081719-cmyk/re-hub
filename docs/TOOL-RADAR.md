@@ -61,6 +61,10 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 
 完整评估、对比表与风险见 [tool-radar/2026-11-07.md](tool-radar/2026-11-07.md)；对象缺口补扫见 [tool-radar/2026-11-07-supplement.md](tool-radar/2026-11-07-supplement.md)。
 
+### Web/JS 缺口补扫（同日）
+
+05（Web 运行时）从 0 → 3 个候选，但**均为 0–1★ 的 WATCH/CATALOG**；没有成熟的新 Web/JS 工具，继续保留 `js-reverse-mcp` + Chrome CDP 主线。详见 [tool-radar/2026-11-07-webgap.md](tool-radar/2026-11-07-webgap.md)。
+
 ## 接入建议（按优先级）
 
 ### P0：`asc` 快查能力（rust_ASC）
@@ -114,3 +118,4 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 
 - [2026-11-07](tool-radar/2026-11-07.md) — 首期，30 天基线，1761 新仓库 / 22 入账 / 8 深评。
 - [2026-11-07 补扫](tool-radar/2026-11-07-supplement.md) — 按对象缺口补扫 + 补漏，304 个未入账仓库 / 7 个候选（.NET、Android VM、设备串流、Electron patch、Termux 工具箱、IDA↔Ghidra 桥、il2cpp 工作台）。
+- [2026-11-07 Web/JS 补扫](tool-radar/2026-11-07-webgap.md) — 10 组定向查询，190 个新仓库 / 5 个候选；无成熟新 Web 工具。
