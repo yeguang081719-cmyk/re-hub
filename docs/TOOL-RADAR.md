@@ -65,6 +65,10 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 
 05（Web 运行时）从 0 → 3 个候选，但**均为 0–1★ 的 WATCH/CATALOG**；没有成熟的新 Web/JS 工具，继续保留 `js-reverse-mcp` + Chrome CDP 主线。详见 [tool-radar/2026-11-07-webgap.md](tool-radar/2026-11-07-webgap.md)。
 
+### 固件/抓包缺口补扫（同日）
+
+08/09 从 2/2 → 5/5 个候选，但**同样没有成熟新后端**：`Firmware-Liberation-Engine`（Lean 4 验证）WATCH，`dgx-spark-firmware-emulator` / `ghidrallm-mcp` / `proxypin` CATALOG。继续用 binwalk/unblob + Ghidra + REA HAR/pcap。详见 [tool-radar/2026-11-07-fwgap.md](tool-radar/2026-11-07-fwgap.md)。
+
 ## 接入建议（按优先级）
 
 ### P0：`asc` 快查能力（rust_ASC）
@@ -119,3 +123,4 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 - [2026-11-07](tool-radar/2026-11-07.md) — 首期，30 天基线，1761 新仓库 / 22 入账 / 8 深评。
 - [2026-11-07 补扫](tool-radar/2026-11-07-supplement.md) — 按对象缺口补扫 + 补漏，304 个未入账仓库 / 7 个候选（.NET、Android VM、设备串流、Electron patch、Termux 工具箱、IDA↔Ghidra 桥、il2cpp 工作台）。
 - [2026-11-07 Web/JS 补扫](tool-radar/2026-11-07-webgap.md) — 10 组定向查询，190 个新仓库 / 5 个候选；无成熟新 Web 工具。
+- [2026-11-07 固件/抓包补扫](tool-radar/2026-11-07-fwgap.md) — 12 组定向查询，524 个新仓库 / 5 个候选；无成熟新后端。
