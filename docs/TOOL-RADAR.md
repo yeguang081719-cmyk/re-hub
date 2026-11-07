@@ -69,6 +69,17 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 
 08/09 从 2/2 → 5/5 个候选，但**同样没有成熟新后端**：`Firmware-Liberation-Engine`（Lean 4 验证）WATCH，`dgx-spark-firmware-emulator` / `ghidrallm-mcp` / `proxypin` CATALOG。继续用 binwalk/unblob + Ghidra + REA HAR/pcap。详见 [tool-radar/2026-11-07-fwgap.md](tool-radar/2026-11-07-fwgap.md)。
 
+### 预评（dry-run 队列，README 级）
+
+| 工具 | 对象 | 章节 | 许可 | 结论 | 一句话 |
+|---|---|---|---|---|---|
+| [ghidra-macos-arm64](https://github.com/qsnbdwdx/ghidra-macos-arm64) | 软件/原生 | 01 | Apache-2.0 | CATALOG | Ghidra 12.1.4 Apple Silicon 预编译 decompile/sleigh；只适用 macOS arm64 + 12.1.4 |
+| [clazzpatcher](https://github.com/inclusivnp-max/clazzpatcher) | App/Android | 02/10 | 无 | WATCH | Kotlin DEX/smali/JVM class 读写/patch/互转；技术强但无许可证 |
+| [rlvr-reverse-engineering](https://github.com/SamH135/rlvr-reverse-engineering) | AI 自动化 | — | MIT | REFERENCE | 面向 coding agent 的 RE RLVR 任务集（keygen/decompile/formats L0–L4） |
+| [malware-detonation-lab](https://github.com/sheloab/malware-detonation-lab) | 软件/原生 | 11/12 | MIT | CATALOG | Docker 恶意样本静态+动态实验台（Kali/Ghidra/REA） |
+
+**计数：** 首期 22 + 补扫 7 + Web 5 + 固件/抓包 5 + 预评 4 = **43 个工具**。
+
 ## 接入建议（按优先级）
 
 ### P0：`asc` 快查能力（rust_ASC）
