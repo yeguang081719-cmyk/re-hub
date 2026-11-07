@@ -383,6 +383,18 @@ export async function runInstaller({ only = null, dryRun = true, updateConfig: d
   if (unknown.length) throw new Error(`未知工具: ${unknown.join(', ')}。可用：${Object.keys(TOOLS).join(', ')}`);
 
   const results = [];
+
+  // Fresh clone: seed config.json from config.example.json so installs have a
+  // base to merge into (config.json is gitignored).
+  if (!dryRun && !fs.existsSync(ctx.configPath)) {
+    const example = path.join(root, 'config.example.json');
+    if (fs.existsSync(example)) {
+      fs.mkdirSync(path.dirname(ctx.configPath), { recursive: true });
+      fs.copyFileSync(example, ctx.configPath);
+      log(`        seeded config.json from config.example.json`);
+    }
+  }
+
   for (const id of ids) {
     try {
       results.push(await installOne(id, ctx));

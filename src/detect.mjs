@@ -19,7 +19,17 @@ export function invalidateDetectCache() {
 
 export function loadConfig() {
   const file = process.env.REHUB_CONFIG || path.join(PROJECT_ROOT, 'config.json');
-  const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+  let cfg = {};
+  if (fs.existsSync(file)) {
+    cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } else {
+    // Fresh clone: config.json is gitignored. Start empty; backends just show
+    // as unavailable until `node scripts/bootstrap.mjs` writes real paths.
+    const example = path.join(PROJECT_ROOT, 'config.example.json');
+    if (fs.existsSync(example)) {
+      try { cfg = JSON.parse(fs.readFileSync(example, 'utf8')); } catch { cfg = {}; }
+    }
+  }
   // env overrides
   const overrides = {
     reaScript: process.env.REHUB_REA_SCRIPT,
