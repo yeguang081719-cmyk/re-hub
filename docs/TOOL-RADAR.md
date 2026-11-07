@@ -14,7 +14,7 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 
 ## 方法
 
-- 数据源：GitHub Search API，`created:>=<today-7d>`、`fork:false`、`sort=stars`、`per_page=100`，31 组查询（reverse engineering / decompiler / disassembler / malware / frida / ghidra / android / iOS / firmware / MCP / unpacker / il2cpp 等）。
+- 数据源：GitHub Search API，`created:>=<today-7d>`、`fork:false`、`sort=stars`、`per_page=100`，38 组查询（reverse engineering / decompiler / disassembler / malware / frida / ghidra / android / iOS / firmware / MCP / unpacker / il2cpp / .NET / Electron / pcap / WASM / JS deobf / UI automation 等）。
 - 去重：所有扫过的仓库写入 `seen` 账本；star 翻倍且 ≥50 的旧噪声会“复活”复查。
 - 过滤：排除 awesome/教程/数据集、静态重编译游戏移植、游戏 cheat、纯防护工具。
 - 评估：读 README + 元数据（stars/license/created/pushed/release），按附录 D 的对象分类和第 01–15 章场景落位，再与现有工具逐项对比。
@@ -47,7 +47,16 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 | [decomp.wtf](https://github.com/i12bp8/decomp.wtf) | 软件/游戏 | 01 | MIT | REJECT | 已归档；社区反对 AI 反编译 |
 | [BLA](https://github.com/qybaihe/bla) | 防护/对抗 | — | MIT | REJECT（非逆向） | 反 AI 逆向防护盾，作为对抗面跟踪 |
 
-完整评估、对比表与风险见 [tool-radar/2026-11-07.md](tool-radar/2026-11-07.md)。
+### 补扫新增（同日，按对象缺口）
+
+| 工具 | 对象 | 场景 | 许可 | 结论 | 一句话 |
+|---|---|---|---|---|---|
+| [mcp-dotnet](https://github.com/jumpifequal/mcp-dotnet) | 软件/.NET | 07 | MIT | **PILOT** | dnlib + ILSpy，36 个 MCP 工具；读/改 IL 并保存，补第 07 章 patch 闭环 |
+| [dsh-apk-vm](https://github.com/yuxiaole-bili/dsh-apk-vm) | App/Android | 03/15 | Apache-2.0 | WATCH | 本地 root AOSP VM + UIAutomator + CDP；无真机跑 APK |
+| [loupe](https://github.com/bmcreations/loupe) | App/Android+iOS | 03/15 | Apache-2.0 | WATCH | 设备串流 + 可访问性树 + MCP；claim/human-hold 人机共驾 |
+| [dsh-asar-patch](https://github.com/loyalchiiina/dsh-asar-patch) | 软件/Electron | 06 | MIT | CATALOG | app.asar 等长就地补丁 + integrity 同步；只改不析 |
+
+完整评估、对比表与风险见 [tool-radar/2026-11-07.md](tool-radar/2026-11-07.md)；对象缺口补扫见 [tool-radar/2026-11-07-supplement.md](tool-radar/2026-11-07-supplement.md)。
 
 ## 接入建议（按优先级）
 
@@ -63,6 +72,11 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 - 第 01 章增加“Rust 二进制”小节：`strings`/FLOSS 失效时，用 `rust-deobf` 做静态 + Unicorn 模拟恢复。
 - 先标 experimental；接 MCP 或 CLI，输出只作为 `inferred` 线索，需人工/Ghidra 复核。
 
+### P1.5：`mcp-dotnet`（.NET 的“可读可改”）
+
+- 直接作为 `mcpBackends` 注册，先跑 `load_assembly → decompile → scan_suspicious_apis → rename → save → 再反编译`。
+- 改 IL 只用于自有/授权样本，保留原始副本；稳定后写进第 07 章“MCP 可选后端”。
+
 ### P2：`apkscope` / `rea-rust`（验证后再说）
 
 - `apkscope`：先复现“打开速度 / 单类 Java / MCP”三项，再决定是否作为 dump/重签可选后端。
@@ -75,6 +89,10 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 | rea-rust | 正式 release / 对拍通过 / 上游 REA 行为变更 |
 | apkscope | 第三方复现基准 / ≥0.8 / 修掉 viewer 平台限制 |
 | rust-deobf | 出 release / 真实样本复现 / premium 许可明确 |
+| mcp-dotnet | 授权 .NET 样本跑通 IL patch / 上游合并 |
+| dsh-apk-vm | 出通用 MCP / 不再依赖 DSH / ARM 镜像支持 |
+| loupe | 支持非 macOS host / iOS 真机输入完整 |
+| dsh-asar-patch | 出 release / 支持非等长重建 |
 | vesper | 有越狱设备 / 出 release |
 | unthemidator | 补 LICENSE / 支持 VMProtect |
 | paranoia | 支持 ARM64 反编译 / CLI 稳定 |
@@ -92,3 +110,4 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 ## 日报索引
 
 - [2026-11-07](tool-radar/2026-11-07.md) — 首期，30 天基线，1761 新仓库 / 22 入账 / 8 深评。
+- [2026-11-07 补扫](tool-radar/2026-11-07-supplement.md) — 按对象缺口补扫，304 个未入账仓库 / 4 个候选（.NET、Android VM、设备串流、Electron patch）。
