@@ -25,7 +25,7 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 | 工具 | 对象 | 场景 | 许可 | 结论 | 一句话 |
 |---|---|---|---|---|---|
 | [rust_ASC](https://github.com/MG1937/rust_ASC) | App/Android | 02 | Apache-2.0 | **PILOT** | 无状态 APK/DEX 快查；JADX 之前的毫秒级侦察层 |
-| [apkscope](https://github.com/suffixing/apkscope) | App/Android | 02/03/10 | Apache-2.0 | **PILOT** | 单 exe 一体化（反编译/Frida/dump/重签/MCP）；基准待复现 |
+| [apkscope](https://github.com/suffixing/apkscope) | App/Android | 02/03/10 | Apache-2.0 | **PILOT** | 单 exe 一体化；v0.7.0 新增 Flutter libapp.so recon；基准待复现 |
 | [rust-deobf](https://github.com/VAHPEM/rust-deobf) | 软件/原生 | 01/12 | Apache-2.0 core | **PILOT** | Rust 恶意样本去混淆；补 FLOSS 的空白 |
 | [rea-rust](https://github.com/nanashili/rea-rust) | 软件/App/JS | 多章 | MIT | **PILOT（对拍）** | REA 的 Rust 重写；去掉 Node 依赖的战略项 |
 | [vesper](https://github.com/Wtrwx/vesper) | App/iOS | 10/14 | MIT | WATCH | iOS 的 MCP 平台；需越狱设备 |
@@ -102,7 +102,7 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 
 ### P2：`apkscope` / `rea-rust`（验证后再说）
 
-- `apkscope`：先复现“打开速度 / 单类 Java / MCP”三项，再决定是否作为 dump/重签可选后端。
+- `apkscope`：先复现“打开速度 / 单类 Java / MCP / Flutter recon”四项，再决定是否作为 dump/重签/Flutter 可选后端。
 - `rea-rust`：先用 3–5 个样本对拍 REA 6.4.0 的 `inspect/decompile` 输出；有正式 release 再考虑替换 Node 运行时。
 
 ## 复评触发
