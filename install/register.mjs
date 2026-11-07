@@ -18,7 +18,7 @@ const SERVER = path.join(PROJECT_ROOT, 'src', 'server.mjs');
 const SKILL_SRC = path.join(PROJECT_ROOT, 'skills', 'reverse-engineering-hub');
 const SKILL_DST = path.join(os.homedir(), '.agents', 'skills', 'reverse-engineering-hub');
 
-const DSH_HOME = process.env.DSH_HOME || 'E:/AI/.dsh';
+const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh');
 const PATCH = path.join(DSH_HOME, 'cordis.patch.yml');
 const MARKER = '# --- rehub-mcp (managed by re-hub/install/register.mjs) ---';
 const BLOCK = `
@@ -29,7 +29,7 @@ ${MARKER}
       config:
         serverName: rehub
         transport: stdio
-        command: 'C:\\Program Files\\nodejs\\node.exe'
+        command: '${findNodeExe()}'
         args:
           - '${SERVER.replace(/\\/g, '/')}'
         toolCallTimeoutMs: 900000

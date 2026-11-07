@@ -29,16 +29,16 @@ re-hub/
 │  ├─ SKILL.md          # 封面：书名/简介/目录/三个索引/标准动作
 │  └─ chapters/         # 正文：00 使用说明 + 01–15 场景章 + A/B/C/D/E 附录（按需加载）
 ├─ install/register.mjs # 一键注册到 DSH（MCP + Skill），幂等
-├─ tests/smoke.mjs      # 28 项冒烟测试（真实 MCP 客户端）
-├─ vendor/              # 全部同类项目源码（27 个仓库，见 VENDOR.md）
-├─ tools/               # 下载的 JADX / apktool
+├─ tests/smoke.mjs      # 105 项冒烟测试（真实 MCP 客户端）
+├─ vendor/              # 全部同类项目源码（25 个仓库，见 VENDOR.md）
+├─ tools/               # 下载的 JADX / apktool / x64dbg / pe-sieve
 └─ state/               # 证据账本、Ghidra 工程、大输出落盘
 ```
 
 ## 2. 快速开始
 
 ```powershell
-cd D:\work\deepseekhharness\re-hub
+cd <repo>
 
 # 0) 从 GitHub 克隆后初始化（本仓库不包含 vendor/tools/state）
 git clone https://github.com/yeguang112/re-hub.git
@@ -74,7 +74,7 @@ node install/register.mjs
 #   重启 DSH 后工具出现为 mcp__rehub__*
 
 # 8) 校验 DSH patch 文件（编码/YAML）
-node scripts/validate-patch.mjs E:\AI\.dsh\cordis.patch.yml
+node scripts/validate-patch.mjs %DSH_HOME%\cordis.patch.yml
 ```
 
 后端细节、坑与接入方法见 [docs/BACKENDS.md](docs/BACKENDS.md)；已整合仓库清单见 [VENDOR.md](VENDOR.md)。

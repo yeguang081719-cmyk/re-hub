@@ -6,8 +6,8 @@
 
 | 后端 | 状态 | 版本/路径 | 参与链路 |
 |---|---|---|---|
-| `rea` | ✅ 可用 | 6.4.0，`D:/work/deepseekhharness/downloads/rea/scripts/rea.mjs` | 原生、.NET、Electron、Web、Android(需 JADX 桥)、固件、抓包、进程 |
-| `ghidra` | ✅ 可用 | 12.1.4，`D:/AI/apps/ghidra_12.1.4_PUBLIC` | 原生直连 headless（函数清单/伪代码） |
+| `rea` | ✅ 可用 | 6.4.0，`D:/path/to/rea/scripts/rea.mjs` | 原生、.NET、Electron、Web、Android(需 JADX 桥)、固件、抓包、进程 |
+| `ghidra` | ✅ 可用 | 12.1.4，`D:/path/to/ghidra_12.x_PUBLIC` | 原生直连 headless（函数清单/伪代码） |
 | `jadx` | ✅ 可用 | 1.5.6，`tools/jadx/bin/jadx.bat` | Android 静态（反编译 Java 源码） |
 | `apktool` | ✅ 可用 | 3.0.3，`tools/apktool_3.0.3.jar` + JDK21 | Android 资源/Manifest |
 | `chrome` | ✅ 可用 | `C:/Program Files/Google/Chrome/Application/chrome.exe` | Web/JS、页面观察 |
@@ -121,7 +121,7 @@ rehub_mcp { action: "call", backend: "ida-mcp", tool: "<tool>", args: {...} }
 2. **JADX 部分失败不算错**：退出码 1 + `finished with errors` 时源码仍完整，网关按 partial success 处理。
 3. **Ghidra 首次分析会写用户缓存**（`%APPDATA%\ghidra`、`%LOCALAPPDATA%\ghidra`），重复分析会快很多。
 4. **DSH 的 MCP 注册需重启**：`cordis.patch.yml` 变更后新进程才会加载；网关内部的 `config.json` 支持热更新（文件 mtime 变化即重读），但 `server.mjs` 代码变更必须重启 DSH 才生效。
-5. **编码**：`E:\AI\.dsh\cordis.patch.yml` 必须是 UTF-8（本机曾出现 GBK/UTF-8 混乱）；`install/register.mjs` 用 Node 写文件，避免 PowerShell 默认编码破坏中文注释。可用 `node scripts/validate-patch.mjs E:\AI\.dsh\cordis.patch.yml` 校验。
+5. **编码**：`%DSH_HOME%\cordis.patch.yml` 必须是 UTF-8（本机曾出现 GBK/UTF-8 混乱）；`install/register.mjs` 用 Node 写文件，避免 PowerShell 默认编码破坏中文注释。可用 `node scripts/validate-patch.mjs %DSH_HOME%\cordis.patch.yml` 校验。
 
 ## 5. 商业工具接入（IDA / Binary Ninja / JEB）
 

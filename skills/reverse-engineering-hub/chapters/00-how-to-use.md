@@ -43,7 +43,7 @@
 ## 最小可用命令
 
 ```powershell
-cd D:\work\deepseekhharness\re-hub
+cd <repo>
 node src/cli.mjs detect
 node src/cli.mjs classify --task "这个 APK 的登录参数怎么加密" --target D:\x\app.apk
 node src/cli.mjs route --task "这个 APK 的登录参数怎么加密" --target D:\x\app.apk

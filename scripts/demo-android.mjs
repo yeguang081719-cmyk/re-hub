@@ -8,7 +8,7 @@ import { routeTask, planScenario } from '../src/scenarios.mjs';
 import { execBackend } from '../src/backends.mjs';
 import { appendEvidence, buildReport } from '../src/evidence.mjs';
 
-const APK = process.argv[2] || 'D:/work/deepseekhharness/re-hub/tools/samples/calculator-10-foss-release.apk';
+const APK = process.argv[2] || path.resolve('tools/samples/calculator-10-foss-release.apk');
 const TASK = '这个 APK 的登录参数加密怎么还原，找 sign 算法';
 const outDir = path.resolve('state/demo');
 fs.mkdirSync(outDir, { recursive: true });

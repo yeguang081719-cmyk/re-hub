@@ -3,7 +3,23 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "RE Hub — one MCP gateway + official skill that routes reverse-engineering tasks to the right chain (native, Android, Web/JS, Electron, .NET, firmware, capture, dynamic).",
+  "description": "RE Hub — one MCP gateway + official skill that routes reverse-engineering tasks to the right chain (native, Android, Web/JS, Electron, .NET, firmware, capture, dynamic, UI).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yeguang112/re-hub.git"
+  },
+  "homepage": "https://github.com/yeguang112/re-hub",
+  "license": "MIT",
+  "author": "yeguang112",
+  "keywords": [
+    "reverse-engineering",
+    "mcp",
+    "dsh",
+    "android",
+    "native",
+    "firmware",
+    "evidence"
+  ],
   "bin": {
     "rehub": "src/server.mjs"
   },

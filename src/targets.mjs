@@ -9,7 +9,9 @@
 //   网站逆向 / App逆向 / 软件逆向 / AI 自动化逆向
 // Each class (or subtype) declares three mode chains: static / dynamic / ui.
 
+import path from 'node:path';
 import { extOf, resolveArgs } from './scenarios.mjs';
+import { PROJECT_ROOT } from './detect.mjs';
 
 export const MODE_ORDER = ['static', 'dynamic', 'ui'];
 
@@ -687,7 +689,7 @@ export function planTargetMode({ objectType, subtype = null, mode = 'static', ta
   const chain = chains[modeKey];
   if (!chain) throw new Error(`${type.label} 没有 ${modeKey} 链路`);
 
-  const workdir = options.workdir || `D:/work/deepseekhharness/re-hub/state/work/${Date.now()}`;
+  const workdir = options.workdir || path.join(PROJECT_ROOT, 'state', 'work', String(Date.now()));
   const ctx = {
     target,
     workdir,

@@ -147,6 +147,6 @@ metadata:
 
 **章节文件在哪**
 
-- 已安装：`C:\Users\Administrator\.agents\skills\reverse-engineering-hub\chapters\`
-- 项目源：`D:\work\deepseekhharness\re-hub\skills\reverse-engineering-hub\chapters\`
+- 已安装：`%USERPROFILE%\.agents\skills\reverse-engineering-hub\chapters\`
+- 项目源：`<repo>\skills\reverse-engineering-hub\chapters\`
 - 不想记路径就调 `rehub_book`，它按章名返回正文。

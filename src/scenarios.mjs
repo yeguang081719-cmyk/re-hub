@@ -1,6 +1,9 @@
 // Scenario catalog + intent router + chain planner.
 // This is the "brain" the official skill tells the agent to consult first.
 
+import path from 'node:path';
+import { PROJECT_ROOT } from './detect.mjs';
+
 export const SCENARIOS = [
   {
     id: 'native-binary',
@@ -20,7 +23,7 @@ export const SCENARIOS = [
       { step: 4, backend: 'ghidra', op: 'functions', args: { path: '{{target}}' }, why: '绕开 provider 限制，直接 headless Ghidra 导出函数清单作为交叉验证。' },
     ],
     reaTools: ['mcp__rea__open_binary', 'mcp__rea__analyze_function', 'mcp__rea__procedure_pseudo_code', 'mcp__rea__procedure_assembly', 'mcp__rea__xrefs', 'mcp__rea__list_strings', 'mcp__rea__search_functions'],
-    install: { ghidra: '已检测到 D:/AI/apps/ghidra_12.1.4_PUBLIC；无需安装。', ida: '商业授权，装好后在 config.json 的 mcpBackends 注册 ida-mcp。' },
+    install: { ghidra: 'Ghidra 已就绪（headless analyzeHeadless 可用）；缺失时用 rehub_detect 看安装提示。', ida: '商业授权，装好后在 config.json 的 mcpBackends 注册 ida-mcp。' },
   },
   {
     id: 'android-apk',
@@ -419,7 +422,7 @@ export function resolveArgs(args = {}, ctx = {}) {
 export function planScenario({ scenario, target = '', goal = '', options = {} } = {}) {
   const s = SCENARIOS.find((x) => x.id === scenario);
   if (!s) throw new Error(`unknown scenario: ${scenario}`);
-  const workdir = options.workdir || `D:/work/deepseekhharness/re-hub/state/work/${Date.now()}`;
+  const workdir = options.workdir || path.join(PROJECT_ROOT, 'state', 'work', String(Date.now()));
   const ctx = {
     target,
     workdir,

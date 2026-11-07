@@ -46,10 +46,10 @@ Agent 侧等价：`rehub_install { only:["jadx"], dryRun:false }`（默认 dry-r
 
 ## B.3 REA 专属环境变量
 
-| 变量 | 作用 | 本机值 |
+| 变量 | 作用 | 示例值 |
 |---|---|---|
-| `GHIDRA_INSTALL_DIR` | REA 的 Ghidra provider | `D:\AI\apps\ghidra_12.1.4_PUBLIC` |
-| `JAVA_HOME` | Ghidra 启动 JDK | `D:\AI\apps\jdk-21` |
+| `GHIDRA_INSTALL_DIR` | REA 的 Ghidra provider | `D:\Tools\ghidra_12.x_PUBLIC` |
+| `JAVA_HOME` | Ghidra 启动 JDK | `D:\Tools\jdk-21` |
 | `REA_JADX_MCP_JAR` | Android provider | `tools\jadx-headless-mcp-0.7.1-clean.jar` |
 
 ## B.4 子 MCP 接入

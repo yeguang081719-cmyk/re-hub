@@ -1,10 +1,28 @@
 // Validate a DSH cordis.patch.yml, tolerating the loader's `!!js` expression tag.
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import os from 'node:os';
 import path from 'node:path';
 
-const require = createRequire(path.join('E:/AI/.dsh/profiles/web', 'noop.cjs'));
-const YAML = require('yaml');
+// `yaml` usually comes from the DSH profile; fall back to a local install.
+function loadYaml() {
+  const dshHome = process.env.DSH_HOME || path.join(os.homedir(), '.dsh');
+  const bases = [
+    path.join(process.cwd(), 'noop.cjs'),
+    path.join(dshHome, 'profiles', 'web', 'noop.cjs'),
+    path.join(dshHome, 'profiles', 'desktop', 'noop.cjs'),
+  ];
+  for (const base of bases) {
+    try { return createRequire(base)('yaml'); } catch { /* try next */ }
+  }
+  return null;
+}
+
+const YAML = loadYaml();
+if (!YAML) {
+  console.error('找不到 yaml 模块：请在 DSH 环境里运行，或先 `npm i yaml`。');
+  process.exit(2);
+}
 
 const file = process.argv[2];
 if (!file) { console.error('usage: node validate-patch.mjs <patch.yml>'); process.exit(2); }
