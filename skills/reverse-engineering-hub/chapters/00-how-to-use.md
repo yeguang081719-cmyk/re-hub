@@ -5,17 +5,20 @@
 ## 这本书的组织
 
 - **SKILL.md（封面）**：书名、简介、目录、三个索引（目标形态 / 用户说法 / 产出）、标准动作。
-- **chapters/00–13**：每个逆向场景一章，互相独立。
-- **chapters/A–C**：附录（证据与交付、后端与依赖、坑与故障排查）。
+- **chapters/00–15**：每个逆向场景一章，互相独立。
+- **chapters/A–D**：附录（证据与交付、后端与依赖、坑与故障排查、对象分类 × 静态/动态/UI 矩阵）。
 
 ## 遇到一个任务，按这个顺序走
 
 1. `rehub_detect` —— 本机能用什么；缺工具就用 `rehub_install { only:[...], dryRun:false }` 按需下载。
-2. `rehub_route { task, target }` —— 这属于哪个场景、该读哪一章（返回 `chapter`）。
-3. `rehub_book { chapter }` —— 只读那一章，不要整本读。
-4. `rehub_plan { scenario, target }` —— 拿到带参数的可执行链路。
-5. 按 `steps` 调 `rehub_exec`（或 `mcp__rea__*`），每步 `rehub_evidence action=append`。
-6. `rehub_evidence action=report` —— 出报告（模板见附录 A）。
+2. `rehub_classify { task, target }` —— **先判断对象**：网站 / App / 软件 / AI 自动化，
+   并拿到静态/动态/UI 三条链路（矩阵见附录 D）。弱输入返回 `unknown` → 先澄清。
+3. `rehub_route { task, target }` —— 这属于哪个场景、该读哪一章（返回 `chapter`），
+   同时附带 `object` 与 `modes`。
+4. `rehub_book { chapter }` —— 只读那一章，不要整本读。
+5. `rehub_plan` —— 两种写法：`{ scenario, target }` 或 `{ objectType, mode, target }`。
+6. 按 `steps` 调 `rehub_exec`（或 `mcp__rea__*`），每步 `rehub_evidence action=append`。
+7. `rehub_evidence action=report` —— 出报告（模板见附录 A）。
 
 ## 什么情况不该继续
 
@@ -36,9 +39,11 @@
 ```powershell
 cd D:\work\deepseekhharness\re-hub
 node src/cli.mjs detect
+node src/cli.mjs classify --task "这个 APK 的登录参数怎么加密" --target D:\x\app.apk
 node src/cli.mjs route --task "这个 APK 的登录参数怎么加密" --target D:\x\app.apk
 node src/cli.mjs plan --scenario android-apk --target D:\x\app.apk
+node src/cli.mjs plan --objectType app --subtype android --mode dynamic --target D:\x\app.apk
 node src/cli.mjs exec rea android-package --path D:\x\app.apk
 ```
 
-MCP 侧等价：`rehub_detect` / `rehub_route` / `rehub_plan` / `rehub_exec`。
+MCP 侧等价：`rehub_detect` / `rehub_classify` / `rehub_route` / `rehub_plan` / `rehub_exec`。

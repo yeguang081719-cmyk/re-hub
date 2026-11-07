@@ -1,6 +1,6 @@
 ---
 name: reverse-engineering-hub
-description: 逆向工程操作手册（RE Hub 版）。当用户要逆向/反编译/破解/脱壳/还原算法或签名/分析 APK·SO·exe·dll·ELF·Electron·.NET·固件·抓包/定位加密参数/写 hook 时使用。先 rehub_detect 侦察，再 rehub_route 定位章节（返回 chapter），然后用 rehub_book 只读那一章，按章内链路执行并记录证据。低置信度必须先向用户澄清。
+description: 逆向工程操作手册（RE Hub 版）。当用户要逆向/反编译/破解/脱壳/还原算法或签名/分析 APK·SO·exe·dll·ELF·Electron·.NET·固件·抓包/定位加密参数/写 hook 时使用。先 rehub_detect 侦察，再用 rehub_classify 判断对象是网站/App/软件/AI 自动化并拿到静态/动态/UI 三条链路，然后用 rehub_route 定位章节（返回 chapter）、rehub_book 只读那一章，按章内链路执行并记录证据。低置信度必须先向用户澄清。
 metadata:
   version: "2"
   mcp_server: rehub
@@ -10,14 +10,18 @@ metadata:
 # 《逆向工程操作手册（RE Hub 版）》
 
 **名称**：逆向工程操作手册 · RE Hub 版
-**版本**：2.0（2026-11-07）
-**配套**：MCP 网关 `rehub`（`mcp__rehub__detect / route / plan / exec / mcp / evidence / book / install`）+ 本机 REA 6.4.0 / Ghidra 12.1.4 / JADX 1.5.6 / apktool 3.0.3；动态/UI 后端：x64dbg / Frida / pe-sieve / UIA（控件树）。
+**版本**：2.1（2026-11-07）
+**配套**：MCP 网关 `rehub`（`mcp__rehub__detect / classify / route / plan / exec / mcp / evidence / book / install`）+ 本机 REA 6.4.0 / Ghidra 12.1.4 / JADX 1.5.6 / apktool 3.0.3；动态/UI 后端：x64dbg / Frida / pe-sieve / UIA（控件树）。
 
 ## 简介（这本书解决什么）
 
 逆向任务最大的浪费不是"不会分析"，而是**一开始就选错链路**：拿 APK 当原生二进制啃、拿网页当客户端拆、
-拿混淆脚本硬读。这本书把逆向拆成 **15 个可识别场景 + 3 个附录**，每个场景一章，
+拿混淆脚本硬读。这本书把逆向拆成 **15 个可识别场景 + 4 个附录**，每个场景一章，
 每章都写清：**什么信号触发它 → 进来先问什么 → 按什么顺序调什么工具 → 记什么证据 → 怎么交付**。
+
+另有一个**正交维度：对象分类**（附录 D）——先判断目标是**网站 / App / 软件 / AI 自动化**，
+再为它分配**静态 / 动态 / UI** 三条链路（`rehub_classify` 直接给）。场景回答"这活像什么"，
+对象分类回答"目标是什么、用哪几种模式做"。
 
 它同时是一本**工具书**，不是小说：
 - 你不需要从头读；先看目录/索引定位到章，再只读那一章。
@@ -49,6 +53,7 @@ metadata:
 | [A](chapters/A-evidence.md) | 证据与交付 | 记录格式、observed/inferred/unknown、报告模板 | 写报告、验收、复盘 |
 | [B](chapters/B-backends.md) | 后端与依赖 | 每个后端状态、命令、缺失怎么装 | 环境报错、工具缺失 |
 | [C](chapters/C-pitfalls.md) | 坑与故障排查 | 真实踩过的坑与修复 | 报错、跑不通、结果可疑 |
+| [D](chapters/D-object-taxonomy.md) | 对象分类 × 模式矩阵 | 网站/App/软件/AI 自动化 → 静态/动态/UI 链路 | 先分类对象、选静态还是动态、UI 复现 |
 
 ## 快速索引
 
@@ -56,6 +61,7 @@ metadata:
 
 | 手里是什么 | 去读 |
 |---|---|
+| 不确定对象类别（网站/App/软件/AI 自动化） | `rehub_classify` + 附录 D |
 | `.exe` `.dll` `.sys` `.so` `.elf` `.dylib` `.macho` | 第 01 章 |
 | `.apk` `.xapk` `.aab` `.apks` | 第 02 章（要动态叠加第 03 章） |
 | `.js` `.html` / 一个网站的前端 | 第 04 章 |
@@ -107,17 +113,25 @@ metadata:
 
 1. **侦察**：`rehub_detect` → 看可用后端与缺失项。缺失项可自动下载：
    `rehub_install { only:["jadx","apktool"], dryRun:false }`（官方 GitHub release + sha256；默认 dry-run）。
-2. **定位章节**：`rehub_route { task, target }` → 返回 `scenario` 和 `chapter`（如 `04-web-js`）。
+2. **对象分类（先定"是什么"）**：`rehub_classify { task, target }` →
+   返回 `objectType`（网站 / App / 软件 / AI 自动化）+ `subtype` + **static / dynamic / ui 三条链路**。
+   - 对象类别由 target 扩展名/URL/短语判定；弱输入返回 `unknown` → 按第 13 章问清楚。
+   - 链路矩阵见 **附录 D**；`AI 自动化` 会额外给 `underlying` 底层对象。
+3. **定位章节**：`rehub_route { task, target }` → 返回 `scenario` 和 `chapter`（如 `04-web-js`），
+   并附带上面的 `object` 与 `modes`（每条模式链路带 chapter/就绪状态）。
    - `confidence=low` 或 `scenario=triage` → **先按第 13 章问用户**，不要硬选。
-3. **读那一章**：`rehub_book { chapter: "<route 返回的 chapter>" }` 取正文。
+4. **读那一章**：`rehub_book { chapter: "<route 返回的 chapter>" }` 取正文。
    - 等价于直接读 `chapters/<chapter>.md`（本 skill 目录下）。
-4. **出计划并执行**：`rehub_plan { scenario, target }` → 按 `steps` 调 `rehub_exec`；
-   REA 的 MCP 工具（`mcp__rea__*`）可直接用，和 `rehub_exec backend=rea` 等价。
-5. **记证据**：每步 `rehub_evidence action=append`；交付前 `action=report`（附录 A）。
+5. **出计划并执行**：两种方式：
+   - 按场景：`rehub_plan { scenario, target }`；
+   - 按对象+模式：`rehub_plan { objectType, subtype?, mode: "static"|"dynamic"|"ui", target }`。
+   按返回的 `steps` 调 `rehub_exec`；REA 的 MCP 工具（`mcp__rea__*`）可直接用，和 `rehub_exec backend=rea` 等价。
+6. **记证据**：每步 `rehub_evidence action=append`；交付前 `action=report`（附录 A）。
 
 **三条铁律**
 
 - 不知道目标形态就**先问**（第 13 章），不要猜。
+- **先分类对象，再选静态/动态/UI**（附录 D）；不要把一种对象的链路硬套到另一种对象。
 - 没跑成功就**不要**给"看起来像"的结论；没验证的写成 `unknown`。
 - 只做**有授权**的目标；不提供绕过他人软件保护的帮助。
 - 动态分析（第 14 章）只在隔离的授权环境做；dump/hook 不碰生产数据。

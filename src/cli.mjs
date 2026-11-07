@@ -10,6 +10,7 @@
 
 import { detectEnvironment, annotateScenario } from './detect.mjs';
 import { SCENARIOS, routeTask, planScenario, scenarioCatalog } from './scenarios.mjs';
+import { classifyTarget, planTargetMode } from './targets.mjs';
 import { execBackend } from './backends.mjs';
 import { appendEvidence, listEvidence, buildReport } from './evidence.mjs';
 
@@ -52,8 +53,19 @@ switch (cmd) {
     print({ ...route, readiness: annotateScenario(env, s) });
     break;
   }
+  case 'classify': {
+    if (!out.task && !out.target) { console.error('需要 --task "..." 或 --target <路径/URL>'); process.exit(2); }
+    const cls = classifyTarget({ task: out.task || '', target: out.target || '', hints: out.hints ? String(out.hints).split(',') : [] });
+    print(cls);
+    break;
+  }
   case 'plan': {
-    if (!out.scenario) { console.error('需要 --scenario <id>'); process.exit(2); }
+    if (out.mode) {
+      if (!out.objectType) { console.error('按模式规划需要 --objectType web|app|software|ai-automation'); process.exit(2); }
+      print(planTargetMode({ objectType: out.objectType, subtype: out.subtype || null, mode: out.mode, target: out.target || '', goal: out.goal || '' }));
+      break;
+    }
+    if (!out.scenario) { console.error('需要 --scenario <id>，或 --objectType + --mode static|dynamic|ui'); process.exit(2); }
     print(planScenario({ scenario: out.scenario, target: out.target || '', goal: out.goal || '' }));
     break;
   }
@@ -81,6 +93,6 @@ switch (cmd) {
     break;
   }
   default:
-    console.error('用法: detect | scenarios | route --task | plan --scenario | exec <backend> <op> | evidence list|append|report');
+    console.error('用法: detect | scenarios | classify --task | route --task | plan --scenario | plan --objectType --mode | exec <backend> <op> | evidence list|append|report');
     process.exit(2);
 }

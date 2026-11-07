@@ -25,9 +25,9 @@ const client = new McpClient({ command: process.execPath, args: [SERVER] }, { ti
 await client.start();
 
 const tools = await client.listTools();
-check('tools/list 返回 9 个工具', tools.tools?.length === 9, `got ${tools.tools?.length}`);
+check('tools/list 返回 10 个工具', tools.tools?.length === 10, `got ${tools.tools?.length}`);
 const names = (tools.tools || []).map((t) => t.name);
-for (const n of ['rehub_detect', 'rehub_scenarios', 'rehub_route', 'rehub_plan', 'rehub_exec', 'rehub_mcp', 'rehub_evidence', 'rehub_book', 'rehub_install']) {
+for (const n of ['rehub_detect', 'rehub_scenarios', 'rehub_route', 'rehub_classify', 'rehub_plan', 'rehub_exec', 'rehub_mcp', 'rehub_evidence', 'rehub_book', 'rehub_install']) {
   check(`工具存在: ${n}`, names.includes(n));
 }
 
@@ -45,13 +45,36 @@ check('scenarios 带 chapter 指针', typeof scenarios?.scenarios?.[0]?.chapter 
 
 // 2b) book
 const toc = textOf(await client.callTool('rehub_book', {}));
-check('book 目录 19 项（00 + 15 章 + 3 附录）', toc?.chapters?.length === 19, `got ${toc?.chapters?.length}`);
+check('book 目录 20 项（00 + 15 章 + 4 附录）', toc?.chapters?.length === 20, `got ${toc?.chapters?.length}`);
 const ch4 = textOf(await client.callTool('rehub_book', { chapter: '04' }));
 check('book 按序号取章（04）', ch4?.ok === true && /Web/.test(ch4.content));
 const chByScenario = textOf(await client.callTool('rehub_book', { chapter: 'web-js' }));
 check('book 按 scenario id 取章', chByScenario?.ok === true && chByScenario.id === '04-web-js');
 const chMissing = textOf(await client.callTool('rehub_book', { chapter: 'nope' }));
 check('book 未知章返回可用列表', chMissing?.ok === false && Array.isArray(chMissing.available));
+
+// 2c) target classification → static/dynamic/ui chains
+const classCases = [
+  { task: '网站登录的 sign 参数怎么生成的，前端 JS 里找', target: 'https://example.com', want: 'web', sub: 'web-sign' },
+  { task: '这个 APK 的登录参数加密怎么还原', target: 'C:/tmp/app.apk', want: 'app', sub: 'android' },
+  { task: 'ipa 里看看用了什么框架', target: 'C:/tmp/app.ipa', want: 'app', sub: 'ios' },
+  { task: '微信小程序 wxapkg 解包看逻辑', target: 'C:/tmp/wx.wxapkg', want: 'app', sub: 'miniprogram' },
+  { task: '反编译这个 exe，看看 main 附近做了什么', target: 'C:/tmp/demo.exe', want: 'software', sub: 'windows-native' },
+  { task: 'unity 游戏 dll 的 c# 逻辑', target: 'C:/tmp/Assembly-CSharp.dll', want: 'software', sub: 'dotnet' },
+  { task: '把 app.asar 解包，看看 IPC 通信', target: 'C:/tmp/app.asar', want: 'software', sub: 'electron' },
+  { task: '用 MCP 自动化逆向整个流程，批量分析 exe', target: 'C:/tmp/agent.exe', want: 'ai-automation', sub: 'mcp-pipeline' },
+];
+for (const c of classCases) {
+  const r = textOf(await client.callTool('rehub_classify', { task: c.task, target: c.target }));
+  check(`对象分类「${c.task.slice(0, 14)}…」→ ${c.want}/${c.sub}`, r?.objectType === c.want && r?.subtype?.id === c.sub, `got ${r?.objectType}/${r?.subtype?.id}`);
+  check(`对象分类「${c.task.slice(0, 10)}…」带 static/dynamic/ui 链路`, ['static', 'dynamic', 'ui'].every((m) => r?.chains?.[m]?.chapter));
+}
+const aiCls = textOf(await client.callTool('rehub_classify', { task: '用 MCP 自动化逆向整个流程，批量分析 exe', target: 'C:/tmp/agent.exe' }));
+check('AI 自动化分类给出底层对象', aiCls?.underlying?.objectType === 'software', `got ${aiCls?.underlying?.objectType}`);
+const unknownCls = textOf(await client.callTool('rehub_classify', { task: '帮我看看这个东西' }));
+check('对象分类弱输入 → unknown + 澄清', unknownCls?.objectType === 'unknown' && unknownCls?.clarify?.length > 0);
+const tax = textOf(await client.callTool('rehub_classify', {}));
+check('对象分类无参返回 4 类目录', tax?.taxonomy?.length === 4, `got ${tax?.taxonomy?.length}`);
 
 // 3) routing
 const cases = [
@@ -71,6 +94,12 @@ for (const c of cases) {
   check(`路由「${c.task.slice(0, 12)}…」带 chapter`, typeof r?.chapter === 'string' && r.chapter.length > 0);
 }
 
+// 3b) route also returns object classification + mode chains
+const routedObj = textOf(await client.callTool('rehub_route', { task: '反编译这个 exe，看看 main 附近做了什么', target: 'C:/tmp/demo.exe' }));
+check('route 带对象分类', routedObj?.object?.type === 'software' && routedObj?.object?.subtype?.id === 'windows-native', `got ${routedObj?.object?.type}/${routedObj?.object?.subtype?.id}`);
+check('route 带 static/dynamic/ui 三链路', Array.isArray(routedObj?.modes) && ['static', 'dynamic', 'ui'].every((m) => routedObj.modes.some((x) => x.mode === m)));
+check('route 模式链路带就绪状态', Array.isArray(routedObj?.modes?.[0]?.readiness?.requiresReady));
+
 // 模糊输入 → triage / low
 const vague = textOf(await client.callTool('rehub_route', { task: '帮我看看这个东西' }));
 check('模糊输入给出澄清问题', Array.isArray(vague?.clarify) && vague.clarify.length > 0);
@@ -81,6 +110,13 @@ check('plan 返回步骤', Array.isArray(plan?.steps) && plan.steps.length >= 3)
 check('plan 标注未解析参数', Array.isArray(plan?.unresolved));
 check('plan 带证据要求', Array.isArray(plan?.evidencePlan) && plan.evidencePlan.length > 0);
 check('plan 带 chapter 指针', plan?.chapter === '01-native-binary');
+
+// 4b) plan by object + mode
+const modePlan = textOf(await client.callTool('rehub_plan', { objectType: 'software', subtype: 'windows-native', mode: 'dynamic', target: 'C:/tmp/demo.exe' }));
+check('plan 按对象+模式生成动态链路', modePlan?.mode === 'dynamic' && modePlan?.chapter === '14-dynamic' && modePlan?.steps?.some((s) => s.backend === 'x64dbg'), `got ${modePlan?.mode}/${modePlan?.chapter}`);
+check('plan 按模式标注未解析参数', Array.isArray(modePlan?.unresolved));
+const webPlan = textOf(await client.callTool('rehub_plan', { objectType: 'web', mode: 'static', target: 'https://example.com' }));
+check('plan web 静态链路→04', webPlan?.chapter === '04-web-js' && webPlan?.steps?.some((s) => s.backend === 'rea'));
 
 // 5) exec error shape
 const bad = textOf(await client.callTool('rehub_exec', { backend: 'nonexistent-backend', op: 'x' }));

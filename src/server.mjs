@@ -9,6 +9,7 @@ import path from 'node:path';
 import { startMcpServer, McpClient } from './lib/mcp.mjs';
 import { loadConfig, detectEnvironment, annotateScenario, PROJECT_ROOT, invalidateDetectCache } from './detect.mjs';
 import { routeTask, planScenario, scenarioCatalog, SCENARIOS } from './scenarios.mjs';
+import { classifyTarget, planTargetMode, taxonomyCatalog, MODE_ORDER } from './targets.mjs';
 import { execBackend } from './backends.mjs';
 import { appendEvidence, listEvidence, buildReport } from './evidence.mjs';
 import { runInstaller } from './installer.mjs';
@@ -91,9 +92,54 @@ const tools = [
     handler: async () => ({ count: SCENARIOS.length, scenarios: scenarioCatalog() }),
   },
   {
+    name: 'rehub_classify',
+    description:
+      '对象分类：判断要逆向的对象属于 网站 / App / 软件 / AI 自动化 哪一类（可细分 Android/iOS/小程序、原生/.NET/Electron/固件等），并为该类分配 静态(static) / 动态(dynamic) / UI(ui) 三条链路（含后端、步骤、章节、就绪状态）。不带 task 时返回分类目录。建议在任何逆向任务的第一步（detect 之后）调用。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task: { type: 'string', description: '用户原话/任务描述' },
+        target: { type: 'string', description: '目标路径或 URL（可选，能显著提高准确率）' },
+        hints: { type: 'array', items: { type: 'string' }, description: '额外提示词（可选）' },
+      },
+    },
+    handler: async ({ task = '', target = '', hints = [] } = {}) => {
+      if (!task && !target) {
+        return {
+          ok: true,
+          taxonomy: taxonomyCatalog(),
+          modes: MODE_ORDER,
+          usage: '传 task/target 进行分类；返回 objectType + subtype + static/dynamic/ui 三条链路。',
+        };
+      }
+      const env = await detectEnvironment(getCfg());
+      const cls = classifyTarget({ task, target, hints });
+      const chains = {};
+      if (cls.objectType !== 'unknown') {
+        for (const m of cls.modes) {
+          const plan = planTargetMode({ objectType: cls.objectType, subtype: cls.subtype?.id, mode: m.mode, target });
+          chains[m.mode] = {
+            mode: m.mode,
+            label: m.label,
+            chapter: plan.chapter,
+            scenario: plan.scenario,
+            requires: plan.requires,
+            optional: plan.optional,
+            steps: plan.steps,
+            unresolved: plan.unresolved,
+            notes: plan.notes,
+            limitations: plan.limitations,
+            readiness: annotateScenario(env, { requires: plan.requires, optional: plan.optional }),
+          };
+        }
+      }
+      return { ...cls, chains };
+    },
+  },
+  {
     name: 'rehub_route',
     description:
-      '意图识别与场景路由：输入用户原话 task（可带目标路径/URL），返回场景 id、置信度、理由、可用性、缺失依赖、澄清问题。低置信度时必须先向用户澄清，不要硬选链路。',
+      '意图识别与场景路由：输入用户原话 task（可带目标路径/URL），返回场景 id、置信度、理由、可用性、缺失依赖、澄清问题；同时返回对象分类（网站/App/软件/AI 自动化）与 static/dynamic/ui 三条模式链路。低置信度时必须先向用户澄清，不要硬选链路。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -113,21 +159,43 @@ const tools = [
         install: env.backends[r.backend]?.install || env.mcp?.[r.backend]?.install || '见 rehub_detect 的 install 字段',
         role: env.backends[r.backend]?.role || null,
       }));
+      // Object taxonomy is orthogonal to the scenario: identify WHAT is being
+      // reversed, then expose the static / dynamic / UI chains for that object.
+      const cls = classifyTarget({ task, target, hints });
+      const object = {
+        type: cls.objectType,
+        label: cls.label,
+        subtype: cls.subtype,
+        confidence: cls.confidence,
+        reasons: cls.reasons,
+        underlying: cls.underlying,
+        clarify: cls.clarify,
+      };
+      const modes = cls.modes.map((m) => ({
+        mode: m.mode,
+        label: m.label,
+        chapter: m.chapter,
+        scenario: m.scenario,
+        require: m.require,
+        optional: m.optional,
+        steps: m.steps,
+        readiness: annotateScenario(env, { requires: m.require, optional: m.optional }),
+      }));
       let next = null;
       if (route.confidence === 'low' || route.scenario === 'triage') {
-        next = { action: 'clarify', questions: route.clarify };
+        next = { action: 'clarify', questions: route.clarify.length ? route.clarify : cls.clarify };
       } else if (missing.length > 0) {
         next = { action: 'install-missing', missing };
       } else {
         next = { action: 'plan', tool: 'rehub_plan', args: { scenario: route.scenario, target: target || '<target>' } };
       }
-      return { ...route, readiness, missing, next };
+      return { ...route, object, modes, readiness, missing, next };
     },
   },
   {
     name: 'rehub_book',
     description:
-      '这本书的目录与正文：不带 chapter 返回目录（00 使用说明 + 15 个场景章 + 3 个附录）；带 chapter 返回该章完整正文。chapter 可用 "04-web-js"/"04"/scenario id（如 "web-js"）。rehub_route 返回的 chapter 直接传进来即可。',
+      '这本书的目录与正文：不带 chapter 返回目录（00 使用说明 + 15 个场景章 + 4 个附录）；带 chapter 返回该章完整正文。chapter 可用 "04-web-js"/"04"/scenario id（如 "web-js"），附录 D 是对象分类 × 静态/动态/UI 链路矩阵。rehub_route 返回的 chapter 直接传进来即可。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -151,20 +219,28 @@ const tools = [
   {
     name: 'rehub_plan',
     description:
-      '为指定场景生成可执行链路：每步的 backend/op/参数、所需前置、未解析参数（needs）、证据记录要求。生成后按步骤调用 rehub_exec（或直接用 mcp__rea__* 工具）。',
+      '生成可执行链路：两种用法 —— (a) 按场景（scenario，来自 rehub_route/rehub_scenarios）；(b) 按对象+模式（objectType=web/app/software/ai-automation + mode=static/dynamic/ui，subtype 可选）。每步返回 backend/op/参数、未解析参数（needs）、章节与证据要求。生成后按步骤调用 rehub_exec（或直接用 mcp__rea__* 工具）。',
     inputSchema: {
       type: 'object',
       properties: {
-        scenario: { type: 'string', description: '场景 id，来自 rehub_route/rehub_scenarios' },
+        scenario: { type: 'string', description: '场景 id（用法 a），来自 rehub_route/rehub_scenarios' },
+        objectType: { type: 'string', description: '对象类别（用法 b）：web/app/software/ai-automation' },
+        subtype: { type: 'string', description: '对象子类（用法 b，可选）：android/ios/miniprogram/windows-native/dotnet/electron/desktop-other/firmware/mcp-pipeline/agent-loop/ai-decompile' },
+        mode: { type: 'string', enum: ['static', 'dynamic', 'ui'], description: '链路模式（用法 b）：静态/动态/UI' },
         target: { type: 'string', description: '目标路径/URL' },
         goal: { type: 'string', description: '用户最终要什么产出（可选）' },
-        options: { type: 'object', description: '链路参数：procedure/className/methodName/cdpEndpoint/targetId/package/device/workdir 等' },
+        options: { type: 'object', description: '链路参数：procedure/className/methodName/cdpEndpoint/targetId/package/device/workdir/process/query/pid 等' },
       },
-      required: ['scenario'],
     },
-    handler: async ({ scenario, target = '', goal = '', options = {} } = {}) => {
-      const plan = planScenario({ scenario, target, goal, options });
+    handler: async ({ scenario, objectType, subtype = null, mode = null, target = '', goal = '', options = {} } = {}) => {
       const env = await detectEnvironment(getCfg());
+      if (mode) {
+        if (!objectType) throw new Error('按模式规划需要 objectType（web/app/software/ai-automation）');
+        const plan = planTargetMode({ objectType, subtype, mode, target, goal, options });
+        return { ...plan, readiness: annotateScenario(env, { requires: plan.requires, optional: plan.optional }) };
+      }
+      if (!scenario) throw new Error('需要 scenario，或 objectType + mode（static/dynamic/ui）');
+      const plan = planScenario({ scenario, target, goal, options });
       const s = SCENARIOS.find((x) => x.id === scenario);
       return { ...plan, readiness: annotateScenario(env, s) };
     },

@@ -308,7 +308,7 @@ const EXT_ALIASES = {
   '.dylib': ['.dylib', '.macho', '.so'],
 };
 
-function extOf(target) {
+export function extOf(target) {
   if (!target || typeof target !== 'string') return null;
   const t = target.trim();
   if (/^https?:\/\//i.test(t) || /^www\./i.test(t)) return null; // URL is not a file extension
@@ -396,7 +396,7 @@ export function routeTask({ task = '', target = '', hints = [] } = {}) {
 }
 
 /** Resolve {{placeholders}} in a step's args. */
-function resolveArgs(args = {}, ctx = {}) {
+export function resolveArgs(args = {}, ctx = {}) {
   const out = {};
   for (const [k, v] of Object.entries(args)) {
     if (typeof v === 'string') {
@@ -435,7 +435,7 @@ export function planScenario({ scenario, target = '', goal = '', options = {} } 
   };
   const steps = s.chain.map((st) => {
     const resolved = resolveArgs(st.args, ctx);
-    const needsArgs = Array.isArray(st.args?.args) && st.args.args.some((x) => typeof x === 'string' && /\{\{/.test(x));
+    const needsArgs = Array.isArray(resolved.args) && resolved.args.some((x) => typeof x === 'string' && /\{\{/.test(x));
     return {
       step: st.step,
       backend: st.backend,

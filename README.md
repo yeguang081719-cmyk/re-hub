@@ -12,8 +12,9 @@ Agent 先识别意图与目标形态，再路由到对应逆向链路（原生 /
 ```
 re-hub/
 ├─ src/
-│  ├─ server.mjs        # MCP stdio 服务：7 个工具 + 2 个官方 prompt
+│  ├─ server.mjs        # MCP stdio 服务：10 个工具 + 2 个官方 prompt
 │  ├─ scenarios.mjs     # 15 个场景目录 + 意图路由（关键词/扩展名加权）+ 链路规划
+│  ├─ targets.mjs       # 对象分类（网站/App/软件/AI 自动化）+ 静态/动态/UI 链路
 │  ├─ backends.mjs      # 真实执行适配器：rea / ghidra / jadx / apktool / adb / frida / uia / x64dbg / pe-sieve
 │  ├─ detect.mjs        # 环境侦察（可用性/版本/安装提示，30s 缓存）
 │  ├─ evidence.mjs      # 证据账本（JSONL）与 Markdown 报告
@@ -22,7 +23,7 @@ re-hub/
 ├─ scripts/ghidra/DumpFunctions.java   # Ghidra headless post-script（函数清单/伪代码）
 ├─ skills/reverse-engineering-hub/
 │  ├─ SKILL.md          # 封面：书名/简介/目录/三个索引/标准动作
-│  └─ chapters/         # 正文：00 使用说明 + 01–13 场景章 + A/B/C 附录（按需加载）
+│  └─ chapters/         # 正文：00 使用说明 + 01–15 场景章 + A/B/C/D 附录（按需加载）
 ├─ install/register.mjs # 一键注册到 DSH（MCP + Skill），幂等
 ├─ tests/smoke.mjs      # 28 项冒烟测试（真实 MCP 客户端）
 ├─ vendor/              # 全部同类项目源码（27 个仓库，见 VENDOR.md）
@@ -80,21 +81,36 @@ node scripts/validate-patch.mjs E:\AI\.dsh\cordis.patch.yml
 |---|---|
 | `detect` | 侦察本机后端可用性、版本、缺失项安装提示、vendor 数量 |
 | `scenarios` | 列出 15 个场景及链路（带 chapter 指针） |
-| `route` | **意图识别**：task(+target) → 场景/置信度/理由/**该读哪一章(chapter)**/缺失依赖/澄清问题 |
+| `classify` | **对象分类**：task(+target) → 网站/App/软件/AI 自动化 + 子类 + **静态/动态/UI 三条链路**（附录 D） |
+| `route` | **意图识别**：task(+target) → 场景/置信度/理由/**该读哪一章(chapter)**/缺失依赖/澄清问题；同时带对象分类与三条模式链路 |
 | `book` | **这本书**：不带参数返回目录；带 chapter（`04`/`04-web-js`/`web-js`）返回该章正文 |
-| `plan` | 生成可执行链路：每步 backend/op/参数、未解析参数、证据要求、chapter |
-| `exec` | 执行一步（rea/jadx/apktool/ghidra/adb/frida），超大输出自动落盘 |
+| `plan` | 生成可执行链路：`{scenario,target}` 或 `{objectType,subtype,mode,target}`，含每步 backend/op/参数、未解析参数、证据要求、chapter |
+| `exec` | 执行一步（rea/jadx/apktool/ghidra/adb/frida/uia/x64dbg/pe-sieve），超大输出自动落盘 |
 | `mcp` | 子 MCP 多路复用（js-reverse-mcp、ghidra-mcp、ida-mcp…） |
 | `evidence` | 证据账本 append/list/report |
 
 Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario-chain`（单场景链路）、`chapter`（单章正文）。
+
+### 3.1 对象分类 × 静态/动态/UI 链路
+
+`classify` 先回答「逆向的是**什么对象**」，再分配「用**哪种模式**做」——与场景（scenario）正交：
+
+| 对象类别 | 子类 | 静态 static | 动态 dynamic | UI ui |
+|---|---|---|---|---|
+| 网站 | web-sign / web-frontend / web-api | 04 抓 bundle + JS 断点 | 05 页面被动观察 | 15 DOM → clean-room 原型 |
+| App | android / ios / miniprogram | 02 / 10 / 10 | 03（adb+frida）/ 14 受限 / 05 | 15 + adb uiautomator / 受限 / 15 |
+| 软件 | windows-native / dotnet / electron / desktop-other / firmware | 01 / 07 / 06 / 01 / 08 | 14 / 14 / 05+14 / 受限 / 外部 | 15 / 15 / 15 / 受限 / 不适用 |
+| AI 自动化 | mcp-pipeline / agent-loop / ai-decompile | 01 MCP 批量 | 14 自动化 | 15 批量采集 |
+
+`AI 自动化` 是"怎么做"的意图：分类结果同时给出 `underlying` 底层对象。完整矩阵见
+[附录 D](skills/reverse-engineering-hub/chapters/D-object-taxonomy.md)。
 
 ## 3. 官方 Skill：一本可查的书
 
 `skills/reverse-engineering-hub/` 是按「书」组织的 skill：
 
 - **封面** `SKILL.md`：书名/简介/**目录**/**三个速查索引**（按目标形态、按用户说法、按产出）/标准动作。
-- **正文** `chapters/`：00 使用说明 + 01–15 场景章 + A 证据与交付 + B 后端与依赖 + C 坑与故障排查。
+- **正文** `chapters/`：00 使用说明 + 01–15 场景章 + A 证据与交付 + B 后端与依赖 + C 坑与故障排查 + D 对象分类 × 模式矩阵。
 - **按需加载**：先 `rehub_route` 拿到 `chapter`，再 `rehub_book { chapter }` 只读那一章，不必整本读。
 - **三索引**让 agent 或人 30 秒内定位："这个报错看哪章、这个目标看哪章、要这种产出看哪章"。
 
@@ -109,7 +125,7 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 | 06 | Electron/桌面 JS | 13 | 分诊（信息不足） |
 | 14 | 动态分析/运行时追踪 | 15 | UI 逆向/界面结构 |
 | A | 证据与交付 | B | 后端与依赖 |
-| C | 坑与故障排查 | — | — |
+| C | 坑与故障排查 | D | 对象分类 × 静态/动态/UI |
 
 ## 3.5 工具自举（别人 clone 下来没有引擎怎么办）
 
