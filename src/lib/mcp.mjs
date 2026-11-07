@@ -197,6 +197,7 @@ export function startMcpServer({ name, version, tools, prompts = [], log = () =>
               'RE Hub 逆向统一网关 = 《逆向工程操作手册》的执行层。' +
               '标准动作：rehub_detect 侦察 → rehub_route 定位场景（返回 chapter）→ rehub_book 只读那一章 → ' +
               'rehub_plan 出链路 → rehub_exec 执行 → rehub_evidence 记录/出报告。' +
+              '缺工具时用 rehub_install（默认 dry-run，dryRun:false 才下载，来源为官方 GitHub release）。' +
               '原生命令用 rehub_exec backend=rea，也可直接用 mcp__rea__* 工具。',
           });
           return;

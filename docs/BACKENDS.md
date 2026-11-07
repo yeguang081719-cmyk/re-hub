@@ -20,6 +20,30 @@
 | `js-reverse-mcp`（子 MCP） | ⚠️ 已克隆，未构建 | `vendor/js-reverse-mcp` | Web/JS 动态（断点/Hook/反检测） |
 | `ghidra-mcp`（子 MCP） | ⚠️ 已克隆，未装扩展 | `vendor/ghidra-mcp` | 200+ Ghidra 工具（可选，替代直连） |
 
+## 1.5 按需自举（bootstrap）
+
+仓库只含代码，不含引擎。缺失的引擎从**官方 GitHub release** 按需下载、校验 sha256、解压并写回 `config.json`：
+
+```powershell
+node scripts/bootstrap.mjs --check                     # 看缺什么 / 已有什么
+node scripts/bootstrap.mjs --only jadx,apktool --yes   # 只装需要的
+node scripts/bootstrap.mjs --all --yes                 # 全部（含 REA / Ghidra，较大）
+```
+
+MCP 侧等价：`rehub_install { only:["jadx"], dryRun:false }`（默认 dry-run 只规划）。
+
+| id | 来源 | 约大小 | 落地位置 |
+|---|---|---|---|
+| `jadx` | skylot/jadx | 70MB | `tools/jadx/`（config.jadxHome） |
+| `apktool` | iBotPeaches/Apktool | 15MB | `tools/apktool.jar`（config.apktoolJar） |
+| `jadx-headless-mcp` | 1013503897/jadx-headless-mcp v0.7.1 | 41MB | `tools/jadx-headless-mcp-0.7.1-clean.jar`（自动重打包去重） |
+| `rea` | morluto/rea | clone + npm | `tools/rea/`（config.reaScript） |
+| `ghidra` | NationalSecurityAgency/ghidra | ~400MB | `tools/ghidra/`（config.ghidraDir，需 JDK21） |
+
+- 已存在或 `config.json` 已指向可用副本 → 自动跳过，不重复下载。
+- GitHub 提供 digest 时校验 sha256（实测 apktool 通过）。
+- adb / frida / IDA / Binary Ninja 不走 GitHub release，按 §2/§5 手动接入。
+
 ## 2. 各后端用法
 
 ### rea（主执行层）

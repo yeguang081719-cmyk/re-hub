@@ -25,9 +25,9 @@ const client = new McpClient({ command: process.execPath, args: [SERVER] }, { ti
 await client.start();
 
 const tools = await client.listTools();
-check('tools/list 返回 8 个工具', tools.tools?.length === 8, `got ${tools.tools?.length}`);
+check('tools/list 返回 9 个工具', tools.tools?.length === 9, `got ${tools.tools?.length}`);
 const names = (tools.tools || []).map((t) => t.name);
-for (const n of ['rehub_detect', 'rehub_scenarios', 'rehub_route', 'rehub_plan', 'rehub_exec', 'rehub_mcp', 'rehub_evidence', 'rehub_book']) {
+for (const n of ['rehub_detect', 'rehub_scenarios', 'rehub_route', 'rehub_plan', 'rehub_exec', 'rehub_mcp', 'rehub_evidence', 'rehub_book', 'rehub_install']) {
   check(`工具存在: ${n}`, names.includes(n));
 }
 
@@ -83,6 +83,10 @@ check('plan 带 chapter 指针', plan?.chapter === '01-native-binary');
 // 5) exec error shape
 const bad = textOf(await client.callTool('rehub_exec', { backend: 'nonexistent-backend', op: 'x' }));
 check('无效后端返回结构化错误', bad?.ok === false && typeof bad.error === 'string');
+
+// 5b) install: unknown tool → structured error (no network touched)
+const badInstall = textOf(await client.callTool('rehub_install', { only: ['nope'] }));
+check('install 未知工具返回错误', typeof badInstall?.error === 'string' && /未知工具/.test(badInstall.error));
 
 // 6) evidence round-trip
 const appended = textOf(await client.callTool('rehub_evidence', {

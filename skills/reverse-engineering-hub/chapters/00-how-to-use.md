@@ -10,7 +10,7 @@
 
 ## 遇到一个任务，按这个顺序走
 
-1. `rehub_detect` —— 本机能用什么。
+1. `rehub_detect` —— 本机能用什么；缺工具就用 `rehub_install { only:[...], dryRun:false }` 按需下载。
 2. `rehub_route { task, target }` —— 这属于哪个场景、该读哪一章（返回 `chapter`）。
 3. `rehub_book { chapter }` —— 只读那一章，不要整本读。
 4. `rehub_plan { scenario, target }` —— 拿到带参数的可执行链路。

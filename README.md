@@ -40,7 +40,11 @@ git clone https://github.com/yeguang112/re-hub.git
 cd re-hub
 Copy-Item config.example.json config.json    # 按本机路径修改
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\vendor-clone.ps1  # 拉 25 个第三方仓库
-# 工具（jadx / apktool / jadx-headless-mcp）下载见 docs/BACKENDS.md
+
+# 工具按需自举（官方 GitHub release + sha256 校验，写入 config.json）
+node scripts/bootstrap.mjs --check                  # 只看缺什么
+node scripts/bootstrap.mjs --only jadx,apktool --yes  # 只装需要的
+node scripts/bootstrap.mjs --all --yes                # 全部（含 REA ~ 与 Ghidra ~400MB）
 
 # 1) 冒烟测试（不需要 DSH）
 node tests/smoke.mjs
@@ -105,6 +109,24 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 | 06 | Electron/桌面 JS | 13 | 分诊（信息不足） |
 | A | 证据与交付 | B | 后端与依赖 |
 | C | 坑与故障排查 | — | — |
+
+## 3.5 工具自举（别人 clone 下来没有引擎怎么办）
+
+仓库只含代码，不含引擎。缺失的引擎可以从**官方 GitHub release** 按需下载，自动解压并写回 `config.json`：
+
+| 工具 | 来源仓库 | 约大小 | 说明 |
+|---|---|---|---|
+| `jadx` | skylot/jadx | 70MB | APK → Java 反编译 |
+| `apktool` | iBotPeaches/Apktool | 15MB | APK 资源/Manifest |
+| `jadx-headless-mcp` | 1013503897/jadx-headless-mcp（固定 v0.7.1） | 41MB | REA 的 Android 桥（自动重打包去重） |
+| `rea` | morluto/rea | 仓库 + npm 依赖 | 统一执行层 |
+| `ghidra` | NationalSecurityAgency/ghidra | ~400MB | 原生深分析（需 JDK21） |
+
+两种用法：
+- **Agent 侧**：`rehub_install { only:["jadx","apktool"], dryRun:false }`（默认 dry-run，只报告计划）
+- **命令行**：`node scripts/bootstrap.mjs --only jadx,apktool --yes`；`--check` 只看状态
+
+特性：已存在（含 config 指向的现成安装）自动跳过；GitHub 提供 digest 时校验 sha256；只装缺的，不重复下载。
 
 ## 4. 场景与后端矩阵
 

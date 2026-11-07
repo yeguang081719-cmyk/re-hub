@@ -11,7 +11,7 @@ metadata:
 
 **名称**：逆向工程操作手册 · RE Hub 版
 **版本**：2.0（2026-11-07）
-**配套**：MCP 网关 `rehub`（`mcp__rehub__detect / route / plan / exec / mcp / evidence / book`）+ 本机 REA 6.4.0 / Ghidra 12.1.4 / JADX 1.5.6 / apktool 3.0.3
+**配套**：MCP 网关 `rehub`（`mcp__rehub__detect / route / plan / exec / mcp / evidence / book / install`）+ 本机 REA 6.4.0 / Ghidra 12.1.4 / JADX 1.5.6 / apktool 3.0.3
 
 ## 简介（这本书解决什么）
 
@@ -98,7 +98,8 @@ metadata:
 
 ## 怎么用这本书（标准动作）
 
-1. **侦察**：`rehub_detect` → 看可用后端与缺失项（缺失项会附安装命令，见附录 B）。
+1. **侦察**：`rehub_detect` → 看可用后端与缺失项。缺失项可自动下载：
+   `rehub_install { only:["jadx","apktool"], dryRun:false }`（官方 GitHub release + sha256；默认 dry-run）。
 2. **定位章节**：`rehub_route { task, target }` → 返回 `scenario` 和 `chapter`（如 `04-web-js`）。
    - `confidence=low` 或 `scenario=triage` → **先按第 13 章问用户**，不要硬选。
 3. **读那一章**：`rehub_book { chapter: "<route 返回的 chapter>" }` 取正文。

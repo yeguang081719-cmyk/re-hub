@@ -18,24 +18,26 @@
 | ida / binja | ❌ | 商业授权 |
 | js-reverse-mcp | ⚠️ 已克隆未构建 | Web 断点/Hook 增强 |
 
-## B.2 缺了怎么装
+## B.2 缺了怎么装（按需自举）
 
 ```powershell
-# adb
-# 下载 Android platform-tools，解压后把 adb.exe 路径写入 config.json 的 adbExe
-
-# frida
-pip install frida-tools
-# 设备端按 ABI 推 frida-server（需 root）
-
-# js-reverse-mcp（可选，增强 Web 链）
-cd D:\work\deepseekhharness\re-hub\vendor\js-reverse-mcp
-npm install
-npm run build
-# 入口 dist/index.js，写进 config.json 的 mcpBackends
-
-# IDA / Binary Ninja：需商业许可；装好后把对应 MCP 服务写进 mcpBackends
+node scripts/bootstrap.mjs --check                     # 看缺什么
+node scripts/bootstrap.mjs --only jadx,apktool --yes   # 只装需要的
+node scripts/bootstrap.mjs --all --yes                 # 全部（含 REA / Ghidra，较大）
 ```
+
+Agent 侧等价：`rehub_install { only:["jadx"], dryRun:false }`（默认 dry-run 只规划，确认后再装）。
+已存在（含 config 指向的现成安装）会自动跳过；GitHub 提供 digest 时校验 sha256。
+
+| id | 来源 | 约大小 |
+|---|---|---|
+| `jadx` | skylot/jadx | 70MB |
+| `apktool` | iBotPeaches/Apktool | 15MB |
+| `jadx-headless-mcp` | 1013503897/jadx-headless-mcp v0.7.1 | 41MB |
+| `rea` | morluto/rea | clone + npm |
+| `ghidra` | NationalSecurityAgency/ghidra | ~400MB（需 JDK21） |
+
+不走 GitHub release 的：adb（platform-tools）、frida（pip）、IDA/Binary Ninja（商业授权）——见 B.5。
 
 ## B.3 REA 专属环境变量
 

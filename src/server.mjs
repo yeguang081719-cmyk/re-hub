@@ -11,6 +11,7 @@ import { loadConfig, detectEnvironment, annotateScenario, PROJECT_ROOT, invalida
 import { routeTask, planScenario, scenarioCatalog, SCENARIOS } from './scenarios.mjs';
 import { execBackend } from './backends.mjs';
 import { appendEvidence, listEvidence, buildReport } from './evidence.mjs';
+import { runInstaller } from './installer.mjs';
 
 const VERSION = '1.0.0';
 const log = (msg) => process.stderr.write(`[rehub] ${msg}\n`);
@@ -66,6 +67,22 @@ const tools = [
       '侦察本机逆向能力：REA/Ghidra/JADX/apktool/Chrome/adb/Frida/IDA/BinaryNinja/子 MCP 是否可用，vendor 仓库数量，缺失项附安装提示。任何逆向任务第一步都先跑它。',
     inputSchema: { type: 'object', properties: { refresh: { type: 'boolean', description: '强制刷新检测缓存' } } },
     handler: async ({ refresh } = {}) => detectEnvironment(getCfg(), { refresh: !!refresh }),
+  },
+  {
+    name: 'rehub_install',
+    description:
+      '按需下载逆向工具（官方 GitHub release，校验 sha256）：jadx / apktool / jadx-headless-mcp / rea / ghidra。默认 dry-run（只报告将下载什么）；dryRun:false 才真正下载、解压并写入 config.json。缺后端时用 rehub_detect 看缺什么，再只装需要的那几个。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        only: { type: 'array', items: { type: 'string' }, description: '工具 id 列表，如 ["jadx","apktool"]；省略=全部' },
+        dryRun: { type: 'boolean', description: 'true（默认）只规划不下载；false 执行安装' },
+      },
+    },
+    handler: async ({ only, dryRun = true } = {}) => {
+      const res = await runInstaller({ only: Array.isArray(only) ? only : undefined, dryRun: dryRun !== false, updateConfig: true });
+      return { ...res, hint: dryRun === false ? '安装完成后请重新 rehub_detect 确认可用性' : '确认无误后用 dryRun:false 执行安装' };
+    },
   },
   {
     name: 'rehub_scenarios',

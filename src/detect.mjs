@@ -237,6 +237,9 @@ export async function detectEnvironment(cfg = loadConfig(), { refresh = false } 
     ready,
     missing,
     summary: `可用后端 ${ready.length} 个：${ready.join(', ') || '无'}；缺失 ${missing.length} 个。vendor 已克隆 ${vendor.count} 个仓库。`,
+    autoInstall:
+      '缺失后端可自动下载（官方 GitHub release，sha256 校验）：rehub_install { only: ["jadx"], dryRun: false }；' +
+      '命令行等价：node scripts/bootstrap.mjs --only jadx --yes；只看状态：node scripts/bootstrap.mjs --check',
   };
   cached = result;
   cachedAt = now;
