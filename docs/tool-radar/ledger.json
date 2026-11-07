@@ -192,13 +192,13 @@
     "JoasASantos/Malvex": {
       "repo": "JoasASantos/Malvex",
       "stars": 58,
-      "license": "MIT (README)",
+      "license": "none (README 称 MIT)",
       "created": "2026-10-14",
       "object": "multi",
       "chapter": "01/02/06/08/09/11/12",
       "verdict": "CATALOG",
       "evidence": "GitHub metadata + README",
-      "note": "恶意分析编排（126 工具、6 阶段、并行 agent）；与 re-hub 编排层重叠，工具动物园难维护"
+      "note": "恶意分析编排（126 工具、6 阶段、并行 agent）；与 re-hub 编排层重叠，工具动物园难维护；README 称 MIT 但无 LICENSE 文件"
     },
     "cschalle/hw-harness": {
       "repo": "cschalle/hw-harness",

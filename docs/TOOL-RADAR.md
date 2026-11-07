@@ -41,7 +41,7 @@ re-hub 的定位是“逆向任务的操作系统”：统一入口、统一编�
 | [retrokit](https://github.com/nautilusbits/retrokit) | 软件/DOS | 01 | Apache-2.0 | CATALOG | DOS LE/LX + Watcom 复古游戏 Ghidra 扩展 |
 | [gore](https://github.com/figurophobia/gore) | 软件/游戏资源 | 10 | MIT | CATALOG | Godot PCK 解包 + 自动找密钥 |
 | [Ghidra-Rare](https://github.com/aleph-void/Ghidra-Rare) | 软件/固件 | 01/08 | MIT | CATALOG | Ghidra 稀有 ISA 的 SLEIGH 支持 |
-| [Malvex](https://github.com/JoasASantos/Malvex) | 多对象 | 多章 | MIT（README） | CATALOG | 126 工具的恶意分析编排；与 re-hub 同层 |
+| [Malvex](https://github.com/JoasASantos/Malvex) | 多对象 | 多章 | 无（README 称 MIT） | CATALOG | 126 工具的恶意分析编排；与 re-hub 同层 |
 | [hw-harness](https://github.com/cschalle/hw-harness) | 硬件/驱动 | 09/11 | MIT | CATALOG | VM + usbmon 外部观测写 Linux 驱动 |
 | [html-disasm](https://github.com/MarketKernel/html-disasm) | 多对象 | 01/10 | MIT | CATALOG | 离线多格式反汇编 |
 | [decomp.wtf](https://github.com/i12bp8/decomp.wtf) | 软件/游戏 | 01 | MIT | REJECT | 已归档；社区反对 AI 反编译 |
