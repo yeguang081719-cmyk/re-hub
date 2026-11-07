@@ -8,11 +8,14 @@
 //   node src/cli.mjs exec rea capabilities
 //   node src/cli.mjs exec ghidra functions --path C:/x.exe --timeout 600000
 
-import { detectEnvironment, annotateScenario } from './detect.mjs';
-import { SCENARIOS, routeTask, planScenario, scenarioCatalog } from './scenarios.mjs';
-import { classifyTarget, planTargetMode } from './targets.mjs';
+import { detectEnvironment, annotateScenario, loadConfig } from './detect.mjs';
+import { SCENARIOS, routeTask, scenarioCatalog } from './scenarios.mjs';
+import { classifyTarget } from './targets.mjs';
+import { buildTaskPlan } from './orchestrator.mjs';
+import { loadTask, taskSummary } from './tasks.mjs';
+import { verifyAll } from './verify.mjs';
 import { execBackend } from './backends.mjs';
-import { appendEvidence, listEvidence, buildReport } from './evidence.mjs';
+import { appendEvidence, appendClaim, listEvidence, buildReport } from './evidence.mjs';
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -60,13 +63,47 @@ switch (cmd) {
     break;
   }
   case 'plan': {
-    if (out.mode) {
-      if (!out.objectType) { console.error('按模式规划需要 --objectType web|app|software|ai-automation'); process.exit(2); }
-      print(planTargetMode({ objectType: out.objectType, subtype: out.subtype || null, mode: out.mode, target: out.target || '', goal: out.goal || '' }));
+    const cfg = loadConfig();
+    const env = await detectEnvironment(cfg);
+    if (out.taskId && !out.scenario && !out.mode) {
+      print({ taskId: out.taskId, task: taskSummary(loadTask(out.taskId, cfg)) });
       break;
     }
-    if (!out.scenario) { console.error('需要 --scenario <id>，或 --objectType + --mode static|dynamic|ui'); process.exit(2); }
-    print(planScenario({ scenario: out.scenario, target: out.target || '', goal: out.goal || '' }));
+    if (!out.scenario && !out.mode) { console.error('需要 --scenario，或 --objectType + --mode，或 --taskId'); process.exit(2); }
+    if (out.mode && !out.objectType) { console.error('按模式规划需要 --objectType web|app|software|ai-automation'); process.exit(2); }
+    const constraints = {};
+    for (const k of ['maxSteps', 'maxRetries', 'budgetMs']) if (out[k] != null) constraints[k] = Number(out[k]);
+    const r = await buildTaskPlan({
+      scenario: out.scenario || null,
+      objectType: out.objectType || null,
+      subtype: out.subtype || null,
+      mode: out.mode || null,
+      taskId: out.taskId || null,
+      fromStep: out.fromStep || null,
+      changeReason: out.changeReason || null,
+      target: out.target || '',
+      goal: out.goal || '',
+      constraints,
+      resolveFallbacks: out.fallbacks !== 'false',
+      cfg,
+      env,
+    });
+    print({
+      schemaVersion: r.schemaVersion,
+      taskId: r.task.taskId,
+      planVersion: r.task.planVersion,
+      status: r.task.status,
+      scenario: r.planMeta.scenario,
+      chapter: r.basePlan.chapter,
+      mode: r.planMeta.mode,
+      steps: r.steps,
+      assumptions: r.task.assumptions,
+      uncertainties: r.task.uncertainties,
+      truncated: r.truncated,
+      missingDependencies: r.missingDependencies,
+      stopConditions: r.stopConditions,
+      task: taskSummary(r.task),
+    });
     break;
   }
   case 'exec': {
@@ -80,11 +117,19 @@ switch (cmd) {
     print(res);
     break;
   }
+  case 'verify': {
+    if (!out.taskId) { console.error('需要 --taskId <任务 id>'); process.exit(2); }
+    print(verifyAll({ task: loadTask(out.taskId) }));
+    break;
+  }
   case 'evidence': {
     const action = pos[0] || 'list';
     if (action === 'append') {
       if (!out.recordJson) { console.error('需要 --recordJson \'{...}\''); process.exit(2); }
       print(appendEvidence(JSON.parse(out.recordJson)));
+    } else if (action === 'claim') {
+      if (!out.claimJson) { console.error('需要 --claimJson \'{...}\''); process.exit(2); }
+      print(appendClaim(JSON.parse(out.claimJson)));
     } else if (action === 'report') {
       print(buildReport({ title: out.title || '逆向分析报告', scenario: out.scenario }));
     } else {
@@ -93,6 +138,6 @@ switch (cmd) {
     break;
   }
   default:
-    console.error('用法: detect | scenarios | classify --task | route --task | plan --scenario | plan --objectType --mode | exec <backend> <op> | evidence list|append|report');
+    console.error('用法: detect | scenarios | classify --task | route --task | plan --scenario | plan --objectType --mode | plan --taskId | verify --taskId | exec <backend> <op> | evidence list|append|claim|report');
     process.exit(2);
 }

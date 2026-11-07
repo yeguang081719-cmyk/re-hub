@@ -4,6 +4,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { run, which } from './lib/exec.mjs';
+import { capabilityCatalog } from './capabilities.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const PROJECT_ROOT = path.resolve(__dirname, '..');
@@ -96,7 +97,9 @@ async function versionOf(cmd, args, opts = {}) {
 
 export async function detectEnvironment(cfg = loadConfig(), { refresh = false } = {}) {
   const now = Date.now();
-  if (!refresh && cached && now - cachedAt < TTL_MS) return cached;
+  if (!refresh && cached && now - cachedAt < TTL_MS) {
+    return { ...cached, cache: { cached: true, ageMs: now - cachedAt } };
+  }
 
   const backends = {};
   const elevated = isElevatedSession();
@@ -317,6 +320,31 @@ export async function detectEnvironment(cfg = loadConfig(), { refresh = false } 
   const ready = Object.entries(backends).filter(([, b]) => b.available).map(([k]) => k);
   const missing = Object.entries(backends).filter(([, b]) => !b.available).map(([k, b]) => ({ backend: k, install: b.install, role: b.role }));
 
+  // installed / runnable / usable are distinct: "检测到程序" ≠ "能执行任务".
+  const REQ = {
+    'pe-sieve': { elevation: true, note: '打开其它进程需要管理员（SeDebugPrivilege）' },
+    x64dbg: { windows: true, note: 'Medium（未提权）下只能调试自己启动的进程' },
+    uia: { windows: true },
+    adb: { device: true, note: '需要设备/模拟器（执行时确认）' },
+    frida: { device: true, note: '需要设备 + frida-server（执行时确认）' },
+  };
+  for (const [name, b] of Object.entries(backends)) {
+    const req = REQ[name] || {};
+    const installed = !!b.available;
+    const platformOk = !req.windows || process.platform === 'win32';
+    const permissionOk = !req.elevation || elevated;
+    const runnable = installed && platformOk;
+    const usable = runnable && permissionOk;
+    b.requirements = { windows: !!req.windows, elevation: !!req.elevation, device: !!req.device };
+    b.status = {
+      installed,
+      runnable,
+      usable,
+      reason: !installed ? 'not-installed' : !platformOk ? 'wrong-platform' : !permissionOk ? 'needs-elevation' : req.device ? 'needs-device-at-run' : 'ready',
+      note: req.note || null,
+    };
+  }
+
   const result = {
     generatedAt: new Date().toISOString(),
     host: { platform: process.platform, arch: process.arch, node: process.version },
@@ -335,6 +363,14 @@ export async function detectEnvironment(cfg = loadConfig(), { refresh = false } 
     autoInstall:
       '缺失后端可自动下载（官方 GitHub release，sha256 校验）：rehub_install { only: ["jadx"], dryRun: false }；' +
       '命令行等价：node scripts/bootstrap.mjs --only jadx --yes；只看状态：node scripts/bootstrap.mjs --check',
+  };
+  result.cache = { cached: false, ageMs: 0 };
+  result.capabilities = capabilityCatalog(result);
+  result.registry = {
+    schemaVersion: '2.0',
+    capabilityCount: result.capabilities.length,
+    updatedAt: result.generatedAt,
+    note: '上层按 capability 请求能力；后端只是候选实现。usable=false 时不应承诺可执行。',
   };
   cached = result;
   cachedAt = now;

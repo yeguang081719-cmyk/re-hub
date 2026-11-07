@@ -12,9 +12,13 @@ Agent 先识别意图与目标形态，再路由到对应逆向链路（原生 /
 ```
 re-hub/
 ├─ src/
-│  ├─ server.mjs        # MCP stdio 服务：10 个工具 + 2 个官方 prompt
+│  ├─ server.mjs        # MCP stdio 服务：11 个工具 + 2 个官方 prompt
 │  ├─ scenarios.mjs     # 15 个场景目录 + 意图路由（关键词/扩展名加权）+ 链路规划
 │  ├─ targets.mjs       # 对象分类（网站/App/软件/AI 自动化）+ 静态/动态/UI 链路
+│  ├─ intake.mjs        # v2 统一任务解析（intent + object + modes + constraints）
+│  ├─ capabilities.mjs  # 能力注册表 + 后端回退（按 capability 选实现）
+│  ├─ tasks.mjs         # 任务状态（taskId/stepId/planVersion）+ 局部重规划
+│  ├─ verify.mjs        # 三层验证（执行 / 事实 / 交付）
 │  ├─ backends.mjs      # 真实执行适配器：rea / ghidra / jadx / apktool / adb / frida / uia / x64dbg / pe-sieve
 │  ├─ detect.mjs        # 环境侦察（可用性/版本/安装提示，30s 缓存）
 │  ├─ evidence.mjs      # 证据账本（JSONL）与 Markdown 报告
@@ -23,7 +27,7 @@ re-hub/
 ├─ scripts/ghidra/DumpFunctions.java   # Ghidra headless post-script（函数清单/伪代码）
 ├─ skills/reverse-engineering-hub/
 │  ├─ SKILL.md          # 封面：书名/简介/目录/三个索引/标准动作
-│  └─ chapters/         # 正文：00 使用说明 + 01–15 场景章 + A/B/C/D 附录（按需加载）
+│  └─ chapters/         # 正文：00 使用说明 + 01–15 场景章 + A/B/C/D/E 附录（按需加载）
 ├─ install/register.mjs # 一键注册到 DSH（MCP + Skill），幂等
 ├─ tests/smoke.mjs      # 28 项冒烟测试（真实 MCP 客户端）
 ├─ vendor/              # 全部同类项目源码（27 个仓库，见 VENDOR.md）
@@ -84,10 +88,11 @@ node scripts/validate-patch.mjs E:\AI\.dsh\cordis.patch.yml
 | `classify` | **对象分类**：task(+target) → 网站/App/软件/AI 自动化 + 子类 + **静态/动态/UI 三条链路**（附录 D） |
 | `route` | **意图识别**：task(+target) → 场景/置信度/理由/**该读哪一章(chapter)**/缺失依赖/澄清问题；同时带对象分类与三条模式链路 |
 | `book` | **这本书**：不带参数返回目录；带 chapter（`04`/`04-web-js`/`web-js`）返回该章正文 |
-| `plan` | 生成可执行链路：`{scenario,target}` 或 `{objectType,subtype,mode,target}`，含每步 backend/op/参数、未解析参数、证据要求、chapter |
-| `exec` | 执行一步（rea/jadx/apktool/ghidra/adb/frida/uia/x64dbg/pe-sieve），超大输出自动落盘 |
+| `plan` | **任务图**：`{scenario,target}` 或 `{objectType,mode,target}`，返回 `taskId/planVersion` + 每步 `stepId/capability/副作用/可用性/回退/期望证据` + 停止条件；支持 `fromStep` 局部重规划 |
+| `exec` | 执行一步（rea/jadx/apktool/ghidra/adb/frida/uia/x64dbg/pe-sieve）；传 `taskId+stepId` 记录状态与 `recovery`，副作用步骤需 `confirm:true` |
 | `mcp` | 子 MCP 多路复用（js-reverse-mcp、ghidra-mcp、ida-mcp…） |
-| `evidence` | 证据账本 append/list/report |
+| `evidence` | 证据账本 + Claim：`append`（artifactRef/sha256）/`claim`（observed/inferred/unknown）/`list`/`report`（统一报告） |
+| `verify` | **三层验证**：execution / fact / delivery；`supported/contradicted/insufficient/inferred/unknown` |
 
 Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario-chain`（单场景链路）、`chapter`（单章正文）。
 
@@ -105,12 +110,29 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 `AI 自动化` 是"怎么做"的意图：分类结果同时给出 `underlying` 底层对象。完整矩阵见
 [附录 D](skills/reverse-engineering-hub/chapters/D-object-taxonomy.md)。
 
+### 3.2 任务状态、能力编排与验证（v2）
+
+`route`/`classify` 共用同一个 `parseTask`（`schemaVersion: "2.0"`），一次解析出
+`intent / object / modes / constraints / assumptions / uncertainties`。
+
+`plan` 创建任务并版本化：`taskId`、`planVersion`、每步 `stepId`，步骤状态
+`pending/running/succeeded/failed/blocked/skipped`；`rehub_plan { taskId, fromStep, changeReason }`
+只替换受影响分支（局部重规划），`constraints.maxSteps` 截断计划、`budgetMs` 在执行侧检查。
+
+`detect` 把后端区分为 **installed / runnable / usable**（例如 Medium 下 pe-sieve 的
+`usable=false`），并按 **capability** 注册候选实现；首选后端不可用时自动尝试等效能力
+（可用 `resolveFallbacks:false` 关闭）。`install` 真正下载需 `dryRun:false + authorize:true`。
+
+`evidence` 的观察（append）与结论（claim）分离；`verify` 分
+**execution（工具是否成功）/ fact（结论是否有 observation 证据）/ delivery（交付物是否达标）** 三层。
+执行成功不等于事实成立。详见 [附录 E](skills/reverse-engineering-hub/chapters/E-task-verify.md)。
+
 ## 3. 官方 Skill：一本可查的书
 
 `skills/reverse-engineering-hub/` 是按「书」组织的 skill：
 
 - **封面** `SKILL.md`：书名/简介/**目录**/**三个速查索引**（按目标形态、按用户说法、按产出）/标准动作。
-- **正文** `chapters/`：00 使用说明 + 01–15 场景章 + A 证据与交付 + B 后端与依赖 + C 坑与故障排查 + D 对象分类 × 模式矩阵。
+- **正文** `chapters/`：00 使用说明 + 01–15 场景章 + A 证据与交付 + B 后端与依赖 + C 坑与故障排查 + D 对象分类 × 模式矩阵 + E 任务状态/能力/验证。
 - **按需加载**：先 `rehub_route` 拿到 `chapter`，再 `rehub_book { chapter }` 只读那一章，不必整本读。
 - **三索引**让 agent 或人 30 秒内定位："这个报错看哪章、这个目标看哪章、要这种产出看哪章"。
 
@@ -126,6 +148,7 @@ Prompt：`reverse-engineering-router`（封面+目录索引全文）、`scenario
 | 14 | 动态分析/运行时追踪 | 15 | UI 逆向/界面结构 |
 | A | 证据与交付 | B | 后端与依赖 |
 | C | 坑与故障排查 | D | 对象分类 × 静态/动态/UI |
+| E | 任务状态、能力与验证 | — | — |
 
 ## 3.5 工具自举（别人 clone 下来没有引擎怎么办）
 
